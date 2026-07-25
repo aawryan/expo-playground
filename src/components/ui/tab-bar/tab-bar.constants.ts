@@ -27,6 +27,8 @@ export const ICON_FORWARD_DURATION = 260;
  * should settle back down fast, even if you're already on the next tab. */
 export const ICON_REVERSE_DURATION = 150;
 
+export const ICON_MAX_SPEED_MULTIPLIER = 3;
+
 /** Ratio of the tab's measured width — same reasoning as the glow: a
  * fixed 30px indicator looks right on a phone but gets visually lost
  * inside a much wider tab on a tablet, so it scales with the tab. */
