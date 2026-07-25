@@ -3,17 +3,26 @@ import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { SongRow } from "../components";
-import { usePlaylistDetail } from "../hooks/use-playlist-detail";
+import type {
+  ContentSource,
+  PlaylistSong,
+} from "@/features/home/types/home-content";
 import { usePlayerStore } from "@/lib/audio/player-store";
 import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
-import type { ContentSource, PlaylistSong } from "@/features/home/types/home-content";
+import { SongRow } from "../components";
+import { usePlaylistDetail } from "../hooks/use-playlist-detail";
 
 const HERO_ARTWORK_SIZE = moderateScale(180);
 
@@ -42,7 +51,8 @@ export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
   const playQueue = usePlayerStore((state) => state.playQueue);
   const activeTrackId = currentIndex >= 0 ? queue[currentIndex]?.id : undefined;
 
-  const heroArtwork = data?.artwork.large ?? data?.artwork.medium ?? data?.artwork.small;
+  const heroArtwork =
+    data?.artwork.large ?? data?.artwork.medium ?? data?.artwork.small;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -54,7 +64,11 @@ export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="chevron-back" size={moderateScale(22)} color={colors.textPrimary} />
+          <Ionicons
+            name="chevron-back"
+            size={moderateScale(22)}
+            color={colors.textPrimary}
+          />
         </Pressable>
       </View>
 
@@ -76,16 +90,24 @@ export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
             <View style={styles.hero}>
               <View style={styles.heroArtworkWrapper}>
                 {heroArtwork ? (
-                  <Image source={{ uri: heroArtwork }} style={styles.heroArtwork} contentFit="cover" />
+                  <Image
+                    source={{ uri: heroArtwork }}
+                    style={styles.heroArtwork}
+                    contentFit="cover"
+                  />
                 ) : (
-                  <View style={[styles.heroArtwork, styles.heroArtworkFallback]} />
+                  <View
+                    style={[styles.heroArtwork, styles.heroArtworkFallback]}
+                  />
                 )}
               </View>
               <Text style={typography.h1} numberOfLines={2}>
                 {data.title}
               </Text>
               {data.subtitle ? (
-                <Text style={[typography.body, styles.subtitle]}>{data.subtitle}</Text>
+                <Text style={[typography.body, styles.subtitle]}>
+                  {data.subtitle}
+                </Text>
               ) : null}
 
               {data.songs.length > 0 ? (
@@ -95,7 +117,11 @@ export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
                   accessibilityRole="button"
                   accessibilityLabel="Play all"
                 >
-                  <Ionicons name="play" size={moderateScale(16)} color={colors.screenBackground} />
+                  <Ionicons
+                    name="play"
+                    size={moderateScale(16)}
+                    color={colors.screenBackground}
+                  />
                   <Text style={styles.playAllLabel}>Play All</Text>
                 </Pressable>
               ) : (

@@ -32,7 +32,7 @@ export function ChartsGrid({ charts, onChartPress }: ChartsGridProps) {
             marginRight: (index + 1) % gridColumns === 0 ? 0 : spacing.md,
           }}
         >
-          <ChartCard chart={item} onPress={onChartPress} />
+          <ChartCard chart={item} rank={index + 1} onPress={onChartPress} />
         </View>
       )}
     />

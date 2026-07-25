@@ -1,3 +1,4 @@
+import { BlurView } from "expo-blur";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "@/lib/theme/colors";
@@ -21,13 +22,19 @@ export function LanguagePillTabs({ options, value, onChange }: LanguagePillTabsP
             key={option}
             onPress={() => onChange(option)}
             hitSlop={8}
-            style={[styles.pill, isActive && styles.pillActive]}
+            style={styles.pillTouchArea}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
           >
-            <Text style={[typography.label, styles.pillText, isActive && styles.pillTextActive]}>
-              {option}
-            </Text>
+            <BlurView
+              intensity={isActive ? 40 : 20}
+              tint="dark"
+              style={[styles.pill, isActive && styles.pillActive]}
+            >
+              <Text style={[typography.label, styles.pillText, isActive && styles.pillTextActive]}>
+                {option}
+              </Text>
+            </BlurView>
           </Pressable>
         );
       })}
@@ -42,16 +49,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
+  pillTouchArea: {
+    borderRadius: radius.pill,
+    overflow: "hidden",
+  },
   pill: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.surfaceBorder,
+    overflow: "hidden",
   },
   pillActive: {
-    backgroundColor: colors.accentMuted,
     borderColor: colors.accent,
   },
   pillText: {

@@ -11,11 +11,13 @@ export const API_URLS = {
 } as const;
 
 if (__DEV__) {
-  (Object.entries(API_URLS) as [string, string | undefined][]).forEach(([key, value]) => {
-    if (!value) {
-      console.warn(
-        `[api] ${key} is not set — check that .env exists at the project root and the dev server was restarted after adding it.`,
-      );
-    }
-  });
+  (Object.entries(API_URLS) as [string, string | undefined][]).forEach(
+    ([key, value]) => {
+      if (!value) {
+        console.warn(
+          `[api] ${key} is not set — check that .env exists at the project root and the dev server was restarted after adding it.`,
+        );
+      }
+    },
+  );
 }

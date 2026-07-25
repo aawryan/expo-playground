@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import type { PlaylistSong } from "@/features/home/types/home-content";
 import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
-import type { PlaylistSong } from "@/features/home/types/home-content";
 
 const ARTWORK_SIZE = moderateScale(48);
 
@@ -25,8 +25,15 @@ function formatDuration(seconds?: number): string | null {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function SongRow({ song, index, isActive, isPlaying, onPress }: SongRowProps) {
-  const artworkUri = song.artwork.small ?? song.artwork.medium ?? song.artwork.large;
+export function SongRow({
+  song,
+  index,
+  isActive,
+  isPlaying,
+  onPress,
+}: SongRowProps) {
+  const artworkUri =
+    song.artwork.small ?? song.artwork.medium ?? song.artwork.large;
   const duration = formatDuration(song.durationSeconds);
 
   return (
@@ -38,7 +45,11 @@ export function SongRow({ song, index, isActive, isPlaying, onPress }: SongRowPr
     >
       <View style={styles.leading}>
         {artworkUri ? (
-          <Image source={{ uri: artworkUri }} style={styles.artwork} contentFit="cover" />
+          <Image
+            source={{ uri: artworkUri }}
+            style={styles.artwork}
+            contentFit="cover"
+          />
         ) : (
           <View style={[styles.artwork, styles.artworkFallback]} />
         )}
@@ -55,7 +66,11 @@ export function SongRow({ song, index, isActive, isPlaying, onPress }: SongRowPr
 
       <View style={styles.textColumn}>
         <Text
-          style={[typography.label, styles.title, isActive && styles.titleActive]}
+          style={[
+            typography.label,
+            styles.title,
+            isActive && styles.titleActive,
+          ]}
           numberOfLines={1}
         >
           {song.title}
@@ -65,7 +80,9 @@ export function SongRow({ song, index, isActive, isPlaying, onPress }: SongRowPr
         </Text>
       </View>
 
-      {duration ? <Text style={[typography.caption, styles.duration]}>{duration}</Text> : null}
+      {duration ? (
+        <Text style={[typography.caption, styles.duration]}>{duration}</Text>
+      ) : null}
     </Pressable>
   );
 }

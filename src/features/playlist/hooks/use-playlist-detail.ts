@@ -9,7 +9,9 @@ export function usePlaylistDetail(source: ContentSource, id: string) {
   return useQuery({
     queryKey: ["playlist-detail", source, id],
     queryFn: () =>
-      source === "gaana" ? fetchGaanaPlaylistDetail(id) : fetchJiosaavnPlaylistDetail(id),
+      source === "gaana"
+        ? fetchGaanaPlaylistDetail(id)
+        : fetchJiosaavnPlaylistDetail(id),
     enabled: Boolean(id),
   });
 }

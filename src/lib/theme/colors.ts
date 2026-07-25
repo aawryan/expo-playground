@@ -45,4 +45,10 @@ export const colors = {
 
   // Feedback tokens.
   danger: "#F87171",
+
+  // Gradient scrims over artwork (poster cards, spotlight banner) — the
+  // screen background's own hue at increasing opacity, so overlaid text
+  // stays legible without introducing a color the icon doesn't have.
+  scrimSoft: "rgba(15,23,42,0.35)",
+  scrimStrong: "rgba(15,23,42,0.92)",
 } as const;

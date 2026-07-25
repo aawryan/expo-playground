@@ -31,12 +31,7 @@ interface GaanaStreamUrls {
 
 /** Picks the best available quality, falling back down the ladder. */
 function highestQualityStreamUrl(urls?: GaanaStreamUrls): string | undefined {
-  return (
-    urls?.very_high_quality ??
-    urls?.high_quality ??
-    urls?.medium_quality ??
-    urls?.low_quality
-  );
+  return urls?.very_high_quality ?? urls?.high_quality ?? urls?.medium_quality ?? urls?.low_quality;
 }
 
 // Shape confirmed against the GaanaPy README's example track response
@@ -83,9 +78,7 @@ function normalizePlaylistSong(raw: GaanaTrackResponse): PlaylistSong {
 // was failing validation and coming back as an error, which is why
 // these two sections showed "load nahi ho paaye" while /charts (which
 // takes no params) loaded fine.
-export async function fetchTrending(
-  language: HomeLanguage,
-): Promise<HomeTrack[]> {
+export async function fetchTrending(language: HomeLanguage): Promise<HomeTrack[]> {
   const { data } = await gaanaClient.get<GaanaTrackResponse[]>("/trending", {
     params: { language },
   });
@@ -102,12 +95,11 @@ interface GaanaNewReleasesResponse {
   albums?: unknown[];
 }
 
-export async function fetchNewReleases(
-  language: HomeLanguage,
-): Promise<HomeTrack[]> {
-  const { data } = await gaanaClient.get<
-    GaanaNewReleasesResponse | GaanaTrackResponse[]
-  >("/newreleases", { params: { language } });
+export async function fetchNewReleases(language: HomeLanguage): Promise<HomeTrack[]> {
+  const { data } = await gaanaClient.get<GaanaNewReleasesResponse | GaanaTrackResponse[]>(
+    "/newreleases",
+    { params: { language } },
+  );
   const songs = Array.isArray(data) ? data : (data?.songs ?? []);
   return songs.map(normalizeTrack);
 }
@@ -148,9 +140,7 @@ interface GaanaDetailResponse {
   tracks?: GaanaTrackResponse[];
 }
 
-export async function fetchGaanaPlaylistDetail(
-  seokey: string,
-): Promise<PlaylistDetail> {
+export async function fetchGaanaPlaylistDetail(seokey: string): Promise<PlaylistDetail> {
   let data: GaanaDetailResponse;
   try {
     ({ data } = await gaanaClient.get<GaanaDetailResponse>("/playlists/info", {
