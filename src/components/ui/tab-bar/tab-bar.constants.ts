@@ -4,14 +4,20 @@ import calendarAnimation from "@/assets/lottie/calendar.json";
 import exploreAnimation from "@/assets/lottie/explore.json";
 import homeAnimation from "@/assets/lottie/home.json";
 import libraryAnimation from "@/assets/lottie/library.json";
+import { moderateScale } from "@/lib/responsive";
 
-export const TAB_BAR_HEIGHT = 64;
-export const TAB_BAR_HORIZONTAL_MARGIN = 20;
+// Authored at a 375-wide reference and run through the shared responsive
+// scale — so the bar reads the same proportional size on a small phone
+// and a tablet instead of the fixed-px version being cramped on one and
+// lost on the other. moderateScale (not the linear scale) is used so the
+// bar doesn't balloon on wide screens.
+export const TAB_BAR_HEIGHT = moderateScale(64);
+export const TAB_BAR_HORIZONTAL_MARGIN = moderateScale(20);
 /** Extra gap kept above the device's safe-area bottom inset (nav bar / home indicator). */
-export const TAB_BAR_BOTTOM_MARGIN = 16;
+export const TAB_BAR_BOTTOM_MARGIN = moderateScale(16);
 export const TAB_BAR_RADIUS = TAB_BAR_HEIGHT / 2;
 
-export const ICON_SIZE = 28;
+export const ICON_SIZE = moderateScale(28);
 
 /** Lottie progress is driven continuously (0→1 / 1→0) instead of via
  * imperative play() calls, so switching direction mid-animation always
@@ -25,8 +31,8 @@ export const ICON_REVERSE_DURATION = 150;
  * fixed 30px indicator looks right on a phone but gets visually lost
  * inside a much wider tab on a tablet, so it scales with the tab. */
 export const INDICATOR_WIDTH_RATIO = 0.35;
-export const INDICATOR_WIDTH_FALLBACK = 30;
-export const INDICATOR_HEIGHT = 4;
+export const INDICATOR_WIDTH_FALLBACK = moderateScale(30);
+export const INDICATOR_HEIGHT = moderateScale(4);
 /** Sits flush against the bar's own top border instead of inset below it. */
 export const INDICATOR_TOP_INSET = 0;
 
@@ -46,8 +52,8 @@ export const GLOW_FALL_DURATION = 260;
 export const GLOW_WIDTH_TOP_RATIO = 0.14;
 export const GLOW_WIDTH_BOTTOM_RATIO = 0.46;
 /** Used only for the very first frame, before any tab has been measured. */
-export const GLOW_WIDTH_TOP_FALLBACK = 12;
-export const GLOW_WIDTH_BOTTOM_FALLBACK = 40;
+export const GLOW_WIDTH_TOP_FALLBACK = moderateScale(12);
+export const GLOW_WIDTH_BOTTOM_FALLBACK = moderateScale(40);
 
 /**
  * The icon sits vertically centered in the TAB_BAR_HEIGHT-tall button
@@ -57,7 +63,8 @@ export const GLOW_WIDTH_BOTTOM_FALLBACK = 40;
  * stops well short of the bar's own bottom edge (64) instead of either
  * cutting off right at the icon or pouring all the way down.
  */
-export const GLOW_HEIGHT = (TAB_BAR_HEIGHT - ICON_SIZE) / 2 + ICON_SIZE + 8;
+export const GLOW_HEIGHT =
+  (TAB_BAR_HEIGHT - ICON_SIZE) / 2 + ICON_SIZE + moderateScale(8);
 
 export const SPRING_CONFIG = {
   damping: 16,

@@ -32,4 +32,17 @@ export const colors = {
   // Text tokens for content sitting on the dark background.
   textPrimary: "#F8FAFC",
   textSecondary: "#94A3B8",
+  textTertiary: "#64748B",
+
+  // Card/surface tokens for content sections (home feed, list items).
+  surface: "#1E293B",
+  surfaceElevated: "#293548",
+  surfaceBorder: "rgba(226,232,240,0.08)",
+
+  // Accent used sparingly for active states (language chips, links).
+  accent: "#38BDF8",
+  accentMuted: "rgba(56,189,248,0.16)",
+
+  // Feedback tokens.
+  danger: "#F87171",
 } as const;
