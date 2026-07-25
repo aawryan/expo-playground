@@ -1,3 +1,4 @@
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -56,10 +57,17 @@ export function HomeScreen() {
   }
 
   function openChart(chart: HomeChart) {
+    // Cast via `unknown`: expo-router's generated Href union (in the
+    // gitignored .expo/types/router.d.ts) only lists routes that existed
+    // the last time `npx expo start` ran, so it won't know about this new
+    // dynamic route until the dev server has regenerated it. `as Href`
+    // alone can still fail if TS sees zero structural overlap with the
+    // stale union; going through `unknown` always compiles and is exactly
+    // what expo-router's own docs recommend for hrefs built at runtime.
     router.push({
       pathname: "/playlist/[source]/[id]",
       params: { source: chart.source, id: chart.id },
-    });
+    } as unknown as Href);
   }
 
   return (
