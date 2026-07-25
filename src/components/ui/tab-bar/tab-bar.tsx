@@ -217,6 +217,8 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
               onLongPress={onLongPress}
               onLayout={handleLayoutFor(index)}
               style={styles.button}
+              forwardDuration={config.forwardDuration}
+              reverseDuration={config.reverseDuration}
             />
           );
         })}

@@ -27,8 +27,6 @@ export const ICON_FORWARD_DURATION = 260;
  * should settle back down fast, even if you're already on the next tab. */
 export const ICON_REVERSE_DURATION = 150;
 
-export const ICON_MAX_SPEED_MULTIPLIER = 3;
-
 /** Ratio of the tab's measured width — same reasoning as the glow: a
  * fixed 30px indicator looks right on a phone but gets visually lost
  * inside a much wider tab on a tablet, so it scales with the tab. */
@@ -96,6 +94,11 @@ export const TAB_ICON_CONFIG: TabBarIconConfig[] = [
     // explore.json top-level layer name: "compass"
     colorKeypaths: ["compass"],
     accessibilityLabel: "Explore",
+    // The arrow rotates continuously across its whole frame range (unlike
+    // the others, which finish their motion early and just hold) — the
+    // global durations make that read as rushed, so it gets more time.
+    forwardDuration: 420,
+    reverseDuration: 280,
   },
   {
     routeName: "library",

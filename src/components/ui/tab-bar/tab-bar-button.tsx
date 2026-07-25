@@ -19,6 +19,8 @@ interface TabBarButtonProps {
   onLongPress: () => void;
   onLayout: (layout: TabLayout) => void;
   style?: StyleProp<ViewStyle>;
+  forwardDuration?: number;
+  reverseDuration?: number;
 }
 
 function TabBarButtonBase({
@@ -30,6 +32,8 @@ function TabBarButtonBase({
   onLongPress,
   onLayout,
   style,
+  forwardDuration,
+  reverseDuration,
 }: TabBarButtonProps) {
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -54,6 +58,8 @@ function TabBarButtonBase({
         source={source}
         colorKeypaths={colorKeypaths}
         focused={focused}
+        forwardDuration={forwardDuration}
+        reverseDuration={reverseDuration}
       />
     </Pressable>
   );
