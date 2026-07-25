@@ -6,6 +6,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
+import { useReduceMotionEnabled } from "@/lib/accessibility/use-reduce-motion";
 import { colors } from "@/lib/theme/colors";
 import {
   ICON_FORWARD_DURATION,
@@ -42,6 +43,7 @@ function TabBarIconBase({
   // reverse play() on mount for tabs that start out inactive.
   const wasFocused = useRef(false);
   const tint = focused ? colors.iconActive : colors.iconInactive;
+  const reduceMotion = useReduceMotionEnabled();
 
   useEffect(() => {
     const endFrame = source.op;
@@ -54,8 +56,12 @@ function TabBarIconBase({
       wasFocused.current = false;
     }
 
-    scale.value = withSpring(focused ? 1.12 : 1, SPRING_CONFIG);
-  }, [focused, scale, source]);
+    scale.value = reduceMotion
+      ? focused
+        ? 1.12
+        : 1
+      : withSpring(focused ? 1.12 : 1, SPRING_CONFIG);
+  }, [focused, scale, source, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -78,8 +84,11 @@ function TabBarIconBase({
         autoPlay={false}
         // Reverse is intentionally quicker than forward — an icon that
         // just lost focus should settle back down fast, even if you're
-        // already on the next tab.
-        duration={focused ? forwardDuration : reverseDuration}
+        // already on the next tab. A near-zero duration when Reduce
+        // Motion is on makes it snap instead of animate.
+        duration={
+          reduceMotion ? 1 : focused ? forwardDuration : reverseDuration
+        }
         style={{ width: ICON_SIZE, height: ICON_SIZE }}
         colorFilters={colorFilters}
       />

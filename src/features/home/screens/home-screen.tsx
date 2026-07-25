@@ -1,10 +1,11 @@
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { usePlayerStore } from "@/lib/audio/player-store";
+import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import {
@@ -41,12 +42,20 @@ function toPlayerTrack(track: HomeTrack) {
 
 export function HomeScreen() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const [trendingLanguage, setTrendingLanguage] =
     useState<HomeLanguage>("Hindi");
   const trendingQueries = useTrendingByLanguage();
   const newReleasesQuery = useNewReleases();
   const chartsQuery = useCharts();
   const playQueue = usePlayerStore((state) => state.playQueue);
+
+  useRegisterScrollToTop(
+    "index",
+    useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }, []),
+  );
 
   const activeTrendingIndex = TRENDING_LANGUAGES.indexOf(trendingLanguage);
   const activeTrendingQuery = trendingQueries[activeTrendingIndex];
@@ -75,6 +84,7 @@ export function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <AmbientGlow />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

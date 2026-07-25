@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -10,10 +11,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { useReduceMotionEnabled } from "@/lib/accessibility/use-reduce-motion";
+import { useScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { TabBarButton } from "./tab-bar-button";
 import { TabBarGlow } from "./tab-bar-glow";
 import {
+  DOUBLE_TAP_MAX_INTERVAL,
   GLOW_ABSORB_DURATION,
   GLOW_FALL_DURATION,
   GLOW_HEIGHT,
@@ -38,6 +42,10 @@ import type { TabBarProps, TabLayout } from "./tab-bar.types";
 export function TabBar({ state, navigation, insets }: TabBarProps) {
   const [layouts, setLayouts] = useState<Record<number, TabLayout>>({});
   const hasMeasuredInitial = useRef(false);
+  const reduceMotion = useReduceMotionEnabled();
+  const scrollToTop = useScrollToTop();
+  // Timestamp of the last press per tab index, for double-tap detection.
+  const lastPressAt = useRef<Record<number, number>>({});
 
   const indicatorX = useSharedValue(0);
   const indicatorScaleX = useSharedValue(1);
@@ -69,8 +77,11 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
     const glowTarget =
       activeLayout.x + activeLayout.width / 2 - glowWidthBottom / 2;
 
-    if (!hasMeasuredInitial.current) {
-      // Snap into place on first measure instead of springing in from 0.
+    if (!hasMeasuredInitial.current || reduceMotion) {
+      // Snap into place instead of springing/sequencing in — either
+      // because this is the very first measurement, or because the
+      // person has Reduce Motion on and every subsequent switch should
+      // respect that the same way.
       indicatorX.value = indicatorTarget;
       glowX.value = glowTarget;
       glowReveal.value = 1;
@@ -107,6 +118,7 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
     indicatorScaleX,
     glowX,
     glowReveal,
+    reduceMotion,
   ]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -202,13 +214,34 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
           const isFocused = state.index === index;
 
           const onPress = () => {
+            // A light tick on every tab press — small, but its absence is
+            // exactly the kind of thing that makes a bar feel "flat".
+            Haptics.selectionAsync();
+
             const event = navigation.emit({
               type: "tabPress",
               target: route.key,
               canPreventDefault: true,
             });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+
+            if (!isFocused) {
+              lastPressAt.current[index] = Date.now();
+              if (!event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+              return;
+            }
+
+            // Tapping the tab you're already on doesn't navigate anywhere,
+            // so this is where a double-tap can mean something: scroll
+            // that screen back to the top.
+            const now = Date.now();
+            const lastPress = lastPressAt.current[index] ?? 0;
+            lastPressAt.current[index] = now;
+
+            if (now - lastPress < DOUBLE_TAP_MAX_INTERVAL) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              scrollToTop(route.name);
             }
           };
 

@@ -16,6 +16,9 @@ export const TAB_BAR_HORIZONTAL_MARGIN = moderateScale(20);
 /** Extra gap kept above the device's safe-area bottom inset (nav bar / home indicator). */
 export const TAB_BAR_BOTTOM_MARGIN = moderateScale(16);
 export const TAB_BAR_RADIUS = TAB_BAR_HEIGHT / 2;
+/** Max gap between two presses on an already-active tab to count as a
+ * double-tap (triggers scroll-to-top) rather than two separate taps. */
+export const DOUBLE_TAP_MAX_INTERVAL = 300;
 
 export const ICON_SIZE = moderateScale(28);
 
