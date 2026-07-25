@@ -1,54 +1,70 @@
 /**
- * Design tokens lifted directly from the app icon (slate/navy gradient
- * with a light "listening ear" glyph). Keep these as the single source
- * of truth so the bar, the glow, the icon tint, and every screen stay
- * in sync with the brand mark.
+ * Design tokens rebuilt to match the app icon's actual character: a true
+ * black/gray gradient (not a blue-tinted slate) with a stark white glyph.
+ * Previously these leaned on Tailwind's Slate scale, which carries a
+ * faint blue tint — close, but not what the icon actually is. This pass
+ * moves to a neutral (Zinc-style) gray scale and swaps every accent that
+ * used to be blue for plain white, so the whole app reads as the same
+ * grayscale material as the icon itself, with white doing the job color
+ * used to do (the "glowing white indicator" look).
  *
- * The icon's own gradient runs from slate-700 (#334155) in its lightest
- * corner down to slate-900 (#0F172A) in its darkest — so the app
- * background stays *inside* that range (slate-900) instead of going
- * darker than the icon itself (the old slate-950 read as too heavy).
- *
- * Palette reference (Tailwind Slate):
- *   slate-900 #0F172A  slate-800 #1E293B  slate-700 #334155
- *   slate-400 #94A3B8  slate-200 #E2E8F0  slate-50  #F8FAFC
+ * Palette reference (neutral gray):
+ *   #0A0A0B (near-black bg)   #161618 (elevated surface)
+ *   #232326 (raised surface)  #6E6E76 / #9A9AA2 (muted text)
+ *   #FAFAFA / #FFFFFF (glyph white)
  */
 export const colors = {
-  // App-wide background — the icon's own darkest tone, not darker than it.
-  screenBackground: "#0F172A",
-  screenBackgroundElevated: "#1E293B",
+  // App-wide background — near-black rather than pure #000, which reads
+  // as "dead" on OLED screens and flattens shadows; this keeps just
+  // enough depth for elevation to still read.
+  screenBackground: "#0A0A0B",
+  screenBackgroundElevated: "#161618",
 
   // Tab bar sits one step lighter than the screen so it visually floats.
-  tabBarBackground: "#1E293B",
-  tabBarBorder: "rgba(226,232,240,0.10)",
+  tabBarBackground: "#161618",
+  tabBarBorder: "rgba(255,255,255,0.10)",
 
-  // Icon tint mirrors the glyph color straight off the app icon.
-  iconInactive: "#94A3B8",
-  iconActive: "#E2E8F0",
-  indicator: "#E2E8F0",
-  glowCore: "rgba(226,232,240,0.45)",
-  glowEdge: "rgba(226,232,240,0)",
+  // Icon tint mirrors the glyph color straight off the app icon: dark
+  // ring, stark white needle/active state.
+  iconInactive: "#8A8A90",
+  iconActive: "#FFFFFF",
+  indicator: "#FFFFFF",
+  glowCore: "rgba(255,255,255,0.55)",
+  glowEdge: "rgba(255,255,255,0)",
 
   // Text tokens for content sitting on the dark background.
-  textPrimary: "#F8FAFC",
-  textSecondary: "#94A3B8",
-  textTertiary: "#64748B",
+  textPrimary: "#FAFAFA",
+  textSecondary: "#9A9AA2",
+  textTertiary: "#6E6E76",
 
   // Card/surface tokens for content sections (home feed, list items).
-  surface: "#1E293B",
-  surfaceElevated: "#293548",
-  surfaceBorder: "rgba(226,232,240,0.08)",
+  surface: "#161618",
+  surfaceElevated: "#232326",
+  surfaceBorder: "rgba(255,255,255,0.08)",
 
-  // Accent used sparingly for active states (language chips, links).
-  accent: "#38BDF8",
-  accentMuted: "rgba(56,189,248,0.16)",
+  // Accent used for active states (language chips, links, play button,
+  // progress fill). No longer blue — the icon has no color of its own,
+  // so the brightest neutral (white) carries that "this is active/lit
+  // up" job instead, same as the tab bar's glow and indicator.
+  accent: "#FFFFFF",
+  accentMuted: "rgba(255,255,255,0.14)",
 
-  // Feedback tokens.
+  // Feedback tokens — kept as a real color since it's functional
+  // (errors), not decorative, and needs to read as "different" from
+  // the rest of the now fully monochrome palette.
   danger: "#F87171",
 
-  // Gradient scrims over artwork (poster cards, spotlight banner) — the
-  // screen background's own hue at increasing opacity, so overlaid text
-  // stays legible without introducing a color the icon doesn't have.
-  scrimSoft: "rgba(15,23,42,0.35)",
-  scrimStrong: "rgba(15,23,42,0.92)",
+  // Gradient scrims over artwork (poster cards, spotlight banner) — pure
+  // black at increasing opacity, matching the new screen background's
+  // own hue so overlaid text stays legible without introducing a color
+  // the icon doesn't have.
+  scrimSoft: "rgba(0,0,0,0.35)",
+  scrimStrong: "rgba(0,0,0,0.92)",
+
+  // Faded white text sitting directly on artwork (track/chart card
+  // captions, rank numbers) — same white as textPrimary, just at
+  // different opacities depending on how much it needs to recede.
+  textOnImage: "rgba(250,250,250,0.75)",
+  textOnImageMuted: "rgba(250,250,250,0.55)",
+  textOnImageFaint: "rgba(250,250,250,0.28)",
 } as const;

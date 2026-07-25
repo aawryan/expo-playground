@@ -102,11 +102,11 @@ const styles = StyleSheet.create({
     left: spacing.sm,
     fontSize: moderateScale(46, 0.3),
     fontWeight: "800",
-    color: "rgba(248,250,252,0.28)",
+    color: colors.textOnImageFaint,
     letterSpacing: -1,
   },
   rankTop: {
-    color: "rgba(226,232,240,0.55)",
+    color: colors.textOnImageMuted,
   },
   overlayText: {
     position: "absolute",
@@ -119,6 +119,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   subtitle: {
-    color: "rgba(248,250,252,0.65)",
+    color: colors.textOnImage,
   },
 });

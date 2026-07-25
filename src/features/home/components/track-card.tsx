@@ -150,6 +150,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   artists: {
-    color: "rgba(248,250,252,0.7)",
+    color: colors.textOnImage,
   },
 });

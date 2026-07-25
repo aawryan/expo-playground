@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs / 2,
   },
   artists: {
-    color: "rgba(248,250,252,0.75)",
+    color: colors.textOnImage,
   },
   footerRow: {
     flexDirection: "row",
