@@ -129,6 +129,16 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
 
   const handleLayoutFor = useCallback(
     (index: number) => (layout: TabLayout) => {
+      // On the very first layout pass (especially on Android), a flex
+      // child can briefly report {x: 0, width: 0} before the row has
+      // finished settling. If we stored that, the glow would snap into
+      // place at a bogus position on first mount, then only get a
+      // *second*, correct measurement once something else (like a tab
+      // press) forced another layout pass — which is exactly why the
+      // light looked "missing" until you started navigating. Ignoring
+      // zero-width reports means the effect waits for the real one.
+      if (layout.width === 0) return;
+
       setLayouts((prev) => {
         const existing = prev[index];
         if (
