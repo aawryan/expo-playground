@@ -1,6 +1,5 @@
 import LottieView, { type AnimationObject } from "lottie-react-native";
 import { memo, useEffect, useMemo, useRef } from "react";
-import { Animated as RNAnimated, Easing as RNEasing } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,15 +14,13 @@ import {
   SPRING_CONFIG,
 } from "./tab-bar.constants";
 
-// lottie-react-native's own documented, tested way to control animation
-// position is a classic React Native `Animated.Value` wired straight to
-// the `progress` prop (see their README). Driving it instead through
-// Reanimated's `useAnimatedProps` looked smoother on paper but turned
-// out unreliable in practice — some sources didn't animate at all
-// (explore's compass), others updated inconsistently frame-to-frame
-// (read as "flashy" instead of smooth). This is the supported path.
-const AnimatedLottieView = RNAnimated.createAnimatedComponent(LottieView);
-
+// Back to the imperative play() API — it's the library's primary,
+// best-supported path (both progress-prop approaches we tried, via
+// Reanimated and via classic Animated.Value, turned out unreliable for
+// this particular set of Lottie sources: one icon wouldn't animate at
+// all, others updated inconsistently). `duration` lets the imperative
+// API itself run forward and reverse at different speeds, so there's no
+// need to fight the progress prop for timing control.
 interface TabBarIconProps {
   source: AnimationObject;
   colorKeypaths: string[];
@@ -31,29 +28,26 @@ interface TabBarIconProps {
 }
 
 function TabBarIconBase({ source, colorKeypaths, focused }: TabBarIconProps) {
+  const lottieRef = useRef<LottieView>(null);
   const scale = useSharedValue(1);
-  const progress = useRef(new RNAnimated.Value(0)).current;
+  // Tracks whether this icon has ever been focused, so we don't fire a
+  // reverse play() on mount for tabs that start out inactive.
+  const wasFocused = useRef(false);
   const tint = focused ? colors.iconActive : colors.iconInactive;
 
   useEffect(() => {
-    // Animated.timing retargets smoothly from wherever the value
-    // currently sits, so switching tabs mid-animation reverses cleanly
-    // instead of jumping — no imperative play(from, to) queueing.
-    RNAnimated.timing(progress, {
-      toValue: focused ? 1 : 0,
-      // Settling back to rest is quicker than playing in, so an icon
-      // that just lost focus doesn't lag behind the tab switch that's
-      // already happened.
-      duration: focused ? ICON_FORWARD_DURATION : ICON_REVERSE_DURATION,
-      easing: RNEasing.out(RNEasing.cubic),
-      // `progress` isn't a transform/opacity style prop, so it can't
-      // run on the native driver — this animation stays on the JS
-      // thread, which is what the library itself expects here.
-      useNativeDriver: false,
-    }).start();
+    const endFrame = source.op;
+
+    if (focused) {
+      lottieRef.current?.play(0, endFrame);
+      wasFocused.current = true;
+    } else if (wasFocused.current) {
+      lottieRef.current?.play(endFrame, 0);
+      wasFocused.current = false;
+    }
 
     scale.value = withSpring(focused ? 1.12 : 1, SPRING_CONFIG);
-  }, [focused, progress, scale]);
+  }, [focused, scale, source]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -69,11 +63,15 @@ function TabBarIconBase({ source, colorKeypaths, focused }: TabBarIconProps) {
 
   return (
     <Animated.View style={animatedStyle}>
-      <AnimatedLottieView
+      <LottieView
+        ref={lottieRef}
         source={source}
         loop={false}
         autoPlay={false}
-        progress={progress}
+        // Reverse is intentionally quicker than forward — an icon that
+        // just lost focus should settle back down fast, even if you're
+        // already on the next tab.
+        duration={focused ? ICON_FORWARD_DURATION : ICON_REVERSE_DURATION}
         style={{ width: ICON_SIZE, height: ICON_SIZE }}
         colorFilters={colorFilters}
       />
