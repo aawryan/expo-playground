@@ -1,12 +1,10 @@
 import LottieView, { type AnimationObject } from "lottie-react-native";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
+import { Animated as RNAnimated, Easing as RNEasing } from "react-native";
 import Animated, {
-  Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 
 import { colors } from "@/lib/theme/colors";
@@ -17,15 +15,14 @@ import {
   SPRING_CONFIG,
 } from "./tab-bar.constants";
 
-// Wrapping LottieView lets us drive its `progress` prop straight off a
-// Reanimated shared value instead of calling the imperative play(from, to)
-// API. That imperative API sets the native animator's start frame and
-// begins playing from there — if you reverse direction while a forward
-// play is still mid-flight, it snaps to the requested start frame first
-// and *then* plays, which reads as a jump/delay when switching tabs fast.
-// A continuously-driven progress value has no such handoff: reversing
-// just retargets the same timing animation from wherever it currently is.
-const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+// lottie-react-native's own documented, tested way to control animation
+// position is a classic React Native `Animated.Value` wired straight to
+// the `progress` prop (see their README). Driving it instead through
+// Reanimated's `useAnimatedProps` looked smoother on paper but turned
+// out unreliable in practice — some sources didn't animate at all
+// (explore's compass), others updated inconsistently frame-to-frame
+// (read as "flashy" instead of smooth). This is the supported path.
+const AnimatedLottieView = RNAnimated.createAnimatedComponent(LottieView);
 
 interface TabBarIconProps {
   source: AnimationObject;
@@ -35,17 +32,26 @@ interface TabBarIconProps {
 
 function TabBarIconBase({ source, colorKeypaths, focused }: TabBarIconProps) {
   const scale = useSharedValue(1);
-  const progress = useSharedValue(0);
+  const progress = useRef(new RNAnimated.Value(0)).current;
   const tint = focused ? colors.iconActive : colors.iconInactive;
 
   useEffect(() => {
-    progress.value = withTiming(focused ? 1 : 0, {
-      // Settling back to the resting frame is quicker than playing in,
-      // so an icon that just lost focus doesn't lag behind the tab
-      // switch that's already happened.
+    // Animated.timing retargets smoothly from wherever the value
+    // currently sits, so switching tabs mid-animation reverses cleanly
+    // instead of jumping — no imperative play(from, to) queueing.
+    RNAnimated.timing(progress, {
+      toValue: focused ? 1 : 0,
+      // Settling back to rest is quicker than playing in, so an icon
+      // that just lost focus doesn't lag behind the tab switch that's
+      // already happened.
       duration: focused ? ICON_FORWARD_DURATION : ICON_REVERSE_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
+      easing: RNEasing.out(RNEasing.cubic),
+      // `progress` isn't a transform/opacity style prop, so it can't
+      // run on the native driver — this animation stays on the JS
+      // thread, which is what the library itself expects here.
+      useNativeDriver: false,
+    }).start();
+
     scale.value = withSpring(focused ? 1.12 : 1, SPRING_CONFIG);
   }, [focused, progress, scale]);
 
@@ -53,9 +59,13 @@ function TabBarIconBase({ source, colorKeypaths, focused }: TabBarIconProps) {
     transform: [{ scale: scale.value }],
   }));
 
-  const animatedProps = useAnimatedProps(() => ({
-    progress: progress.value,
-  }));
+  // Stable identity unless the tint itself actually changes, so we're
+  // not handing the native view a new colorFilters array (and risking
+  // an internal re-init) on every unrelated re-render.
+  const colorFilters = useMemo(
+    () => colorKeypaths.map((keypath) => ({ keypath, color: tint })),
+    [colorKeypaths, tint],
+  );
 
   return (
     <Animated.View style={animatedStyle}>
@@ -63,12 +73,9 @@ function TabBarIconBase({ source, colorKeypaths, focused }: TabBarIconProps) {
         source={source}
         loop={false}
         autoPlay={false}
-        animatedProps={animatedProps}
+        progress={progress}
         style={{ width: ICON_SIZE, height: ICON_SIZE }}
-        colorFilters={colorKeypaths.map((keypath) => ({
-          keypath,
-          color: tint,
-        }))}
+        colorFilters={colorFilters}
       />
     </Animated.View>
   );

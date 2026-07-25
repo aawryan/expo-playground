@@ -21,7 +21,11 @@ export const ICON_FORWARD_DURATION = 260;
  * should settle back down fast, even if you're already on the next tab. */
 export const ICON_REVERSE_DURATION = 150;
 
-export const INDICATOR_WIDTH = 30;
+/** Ratio of the tab's measured width — same reasoning as the glow: a
+ * fixed 30px indicator looks right on a phone but gets visually lost
+ * inside a much wider tab on a tablet, so it scales with the tab. */
+export const INDICATOR_WIDTH_RATIO = 0.35;
+export const INDICATOR_WIDTH_FALLBACK = 30;
 export const INDICATOR_HEIGHT = 4;
 /** Sits flush against the bar's own top border instead of inset below it. */
 export const INDICATOR_TOP_INSET = 0;
@@ -45,11 +49,15 @@ export const GLOW_WIDTH_BOTTOM_RATIO = 0.46;
 export const GLOW_WIDTH_TOP_FALLBACK = 12;
 export const GLOW_WIDTH_BOTTOM_FALLBACK = 40;
 
-/** Fraction of the bar's height the light "pours" down to. Previously
- * 100% (the full bar height), which ran the glow all the way to the
- * bottom edge — now it eases off just past the icon instead of lighting
- * up empty space beneath it. */
-export const GLOW_HEIGHT = TAB_BAR_HEIGHT * 0.68;
+/**
+ * The icon sits vertically centered in the TAB_BAR_HEIGHT-tall button
+ * (ICON_SIZE centered → spans y=18 to y=46 of the 64px bar), so this is
+ * calibrated directly off that: icon's bottom edge (46) plus a small
+ * margin so the light visibly extends a little past the icon, then
+ * stops well short of the bar's own bottom edge (64) instead of either
+ * cutting off right at the icon or pouring all the way down.
+ */
+export const GLOW_HEIGHT = (TAB_BAR_HEIGHT - ICON_SIZE) / 2 + ICON_SIZE + 8;
 
 export const SPRING_CONFIG = {
   damping: 16,

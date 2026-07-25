@@ -24,7 +24,8 @@ import {
   GLOW_WIDTH_TOP_RATIO,
   INDICATOR_HEIGHT,
   INDICATOR_TOP_INSET,
-  INDICATOR_WIDTH,
+  INDICATOR_WIDTH_FALLBACK,
+  INDICATOR_WIDTH_RATIO,
   SPRING_CONFIG,
   TAB_BAR_BOTTOM_MARGIN,
   TAB_BAR_HEIGHT,
@@ -56,12 +57,15 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
   const glowWidthTop = activeLayout
     ? activeLayout.width * GLOW_WIDTH_TOP_RATIO
     : GLOW_WIDTH_TOP_FALLBACK;
+  const indicatorWidth = activeLayout
+    ? activeLayout.width * INDICATOR_WIDTH_RATIO
+    : INDICATOR_WIDTH_FALLBACK;
 
   useEffect(() => {
     if (!activeLayout) return;
 
     const indicatorTarget =
-      activeLayout.x + activeLayout.width / 2 - INDICATOR_WIDTH / 2;
+      activeLayout.x + activeLayout.width / 2 - indicatorWidth / 2;
     const glowTarget =
       activeLayout.x + activeLayout.width / 2 - glowWidthBottom / 2;
 
@@ -98,6 +102,7 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
   }, [
     activeLayout,
     glowWidthBottom,
+    indicatorWidth,
     indicatorX,
     indicatorScaleX,
     glowX,
@@ -174,7 +179,7 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
         {/* Indicator is a normal child of the bar now — fully inside the
             pill, not a sibling poking above its rounded edge. */}
         <Animated.View
-          style={[styles.indicator, indicatorStyle]}
+          style={[styles.indicator, { width: indicatorWidth }, indicatorStyle]}
           pointerEvents="none"
         />
 
@@ -269,7 +274,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: INDICATOR_TOP_INSET,
     left: 0,
-    width: INDICATOR_WIDTH,
+    // Width is applied inline (see JSX) since it's computed per-tab now.
     height: INDICATOR_HEIGHT,
     borderRadius: INDICATOR_HEIGHT / 2,
     backgroundColor: colors.indicator,

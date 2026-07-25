@@ -28,10 +28,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 15,
-    color: "#5C5C5C",
+    color: colors.textSecondary,
   },
 });
