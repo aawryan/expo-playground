@@ -1,12 +1,14 @@
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { usePlayerStore } from "@/lib/audio/player-store";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
-import { typography } from "@/lib/theme/typography";
 import {
   ChartsGrid,
+  HomeHero,
   LanguagePillTabs,
   SectionErrorView,
   SectionHeader,
@@ -19,19 +21,46 @@ import {
   useNewReleases,
   useTrendingByLanguage,
 } from "../hooks/use-home-feed";
-import type { HomeLanguage } from "../types/home-content";
+import type { HomeChart, HomeLanguage, HomeTrack } from "../types/home-content";
 
 const TRENDING_LANGUAGES: readonly HomeLanguage[] = ["Hindi", "English"];
 
+function toPlayerTrack(track: HomeTrack) {
+  return {
+    id: track.id,
+    title: track.title,
+    artists: track.artists,
+    artworkUrl:
+      track.artwork.medium ?? track.artwork.large ?? track.artwork.small,
+    streamUrl: track.streamUrl,
+  };
+}
+
 export function HomeScreen() {
+  const router = useRouter();
   const [trendingLanguage, setTrendingLanguage] =
     useState<HomeLanguage>("Hindi");
   const trendingQueries = useTrendingByLanguage();
   const newReleasesQuery = useNewReleases();
   const chartsQuery = useCharts();
+  const playQueue = usePlayerStore((state) => state.playQueue);
 
   const activeTrendingIndex = TRENDING_LANGUAGES.indexOf(trendingLanguage);
   const activeTrendingQuery = trendingQueries[activeTrendingIndex];
+
+  function playFromList(list: HomeTrack[], track: HomeTrack) {
+    const index = list.findIndex(
+      (item) => item.id === track.id && item.source === track.source,
+    );
+    playQueue(list.map(toPlayerTrack), Math.max(index, 0));
+  }
+
+  function openChart(chart: HomeChart) {
+    router.push({
+      pathname: "/playlist/[source]/[id]",
+      params: { source: chart.source, id: chart.id },
+    });
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -39,12 +68,7 @@ export function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={typography.h1}>Namaste 👋</Text>
-          <Text style={[typography.body, styles.headerSubtitle]}>
-            Yahan hai aapke liye kuch naya.
-          </Text>
-        </View>
+        <HomeHero />
 
         <View style={styles.section}>
           <SectionHeader title="Trending Now" />
@@ -58,7 +82,12 @@ export function HomeScreen() {
           ) : activeTrendingQuery?.isError ? (
             <SectionErrorView message="Trending tracks load nahi ho paaye." />
           ) : (
-            <TrackRow tracks={activeTrendingQuery?.data ?? []} />
+            <TrackRow
+              tracks={activeTrendingQuery?.data ?? []}
+              onTrackPress={(track) =>
+                playFromList(activeTrendingQuery?.data ?? [], track)
+              }
+            />
           )}
         </View>
 
@@ -72,7 +101,12 @@ export function HomeScreen() {
           ) : newReleasesQuery.isError ? (
             <SectionErrorView message="New releases load nahi ho paaye." />
           ) : (
-            <TrackRow tracks={newReleasesQuery.data ?? []} />
+            <TrackRow
+              tracks={newReleasesQuery.data ?? []}
+              onTrackPress={(track) =>
+                playFromList(newReleasesQuery.data ?? [], track)
+              }
+            />
           )}
         </View>
 
@@ -83,7 +117,10 @@ export function HomeScreen() {
           ) : chartsQuery.isError ? (
             <SectionErrorView message="Charts load nahi ho paaye." />
           ) : (
-            <ChartsGrid charts={chartsQuery.data ?? []} />
+            <ChartsGrid
+              charts={chartsQuery.data ?? []}
+              onChartPress={openChart}
+            />
           )}
         </View>
       </ScrollView>
@@ -97,15 +134,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.screenBackground,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl * 2,
+    paddingBottom: spacing.xxl * 4,
   },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-    gap: spacing.xs / 2,
-  },
-  headerSubtitle: {},
   section: {
     marginBottom: spacing.xl,
   },
