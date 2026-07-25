@@ -18,7 +18,10 @@ import {
   GLOW_FALL_DURATION,
   GLOW_HEIGHT,
   GLOW_TRAVEL_DELAY,
-  GLOW_WIDTH_BOTTOM,
+  GLOW_WIDTH_BOTTOM_FALLBACK,
+  GLOW_WIDTH_BOTTOM_RATIO,
+  GLOW_WIDTH_TOP_FALLBACK,
+  GLOW_WIDTH_TOP_RATIO,
   INDICATOR_HEIGHT,
   INDICATOR_TOP_INSET,
   INDICATOR_WIDTH,
@@ -43,13 +46,24 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
 
   const activeLayout = layouts[state.index];
 
+  // Ratio of the tab's own measured width, not a fixed pixel value — so
+  // the halo hugs each icon with the same proportional space on a small
+  // phone and a wide tablet alike, instead of looking cramped on one and
+  // lost on the other.
+  const glowWidthBottom = activeLayout
+    ? activeLayout.width * GLOW_WIDTH_BOTTOM_RATIO
+    : GLOW_WIDTH_BOTTOM_FALLBACK;
+  const glowWidthTop = activeLayout
+    ? activeLayout.width * GLOW_WIDTH_TOP_RATIO
+    : GLOW_WIDTH_TOP_FALLBACK;
+
   useEffect(() => {
     if (!activeLayout) return;
 
     const indicatorTarget =
       activeLayout.x + activeLayout.width / 2 - INDICATOR_WIDTH / 2;
     const glowTarget =
-      activeLayout.x + activeLayout.width / 2 - GLOW_WIDTH_BOTTOM / 2;
+      activeLayout.x + activeLayout.width / 2 - glowWidthBottom / 2;
 
     if (!hasMeasuredInitial.current) {
       // Snap into place on first measure instead of springing in from 0.
@@ -81,7 +95,14 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
         }),
       ),
     );
-  }, [activeLayout, indicatorX, indicatorScaleX, glowX, glowReveal]);
+  }, [
+    activeLayout,
+    glowWidthBottom,
+    indicatorX,
+    indicatorScaleX,
+    glowX,
+    glowReveal,
+  ]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [
@@ -135,8 +156,17 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
       <View style={styles.bar}>
         <View style={styles.glowClip} pointerEvents="none">
           <Animated.View style={[styles.glow, glowStyle]}>
-            <Animated.View style={[styles.glowReveal, glowRevealStyle]}>
-              <TabBarGlow />
+            <Animated.View
+              style={[
+                styles.glowReveal,
+                { width: glowWidthBottom },
+                glowRevealStyle,
+              ]}
+            >
+              <TabBarGlow
+                widthBottom={glowWidthBottom}
+                widthTop={glowWidthTop}
+              />
             </Animated.View>
           </Animated.View>
         </View>
@@ -225,7 +255,8 @@ const styles = StyleSheet.create({
     left: 0,
   },
   glowReveal: {
-    width: GLOW_WIDTH_BOTTOM,
+    // Width is applied inline now (see JSX) since it's computed per-tab
+    // rather than a fixed constant.
     overflow: "hidden",
   },
   button: {

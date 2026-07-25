@@ -1,5 +1,7 @@
 node_modules/
 .expo/
+.vscode/
+store-assets/
 android/
 ios/
 *.log

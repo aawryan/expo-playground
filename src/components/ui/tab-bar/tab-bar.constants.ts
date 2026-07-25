@@ -13,6 +13,14 @@ export const TAB_BAR_RADIUS = TAB_BAR_HEIGHT / 2;
 
 export const ICON_SIZE = 28;
 
+/** Lottie progress is driven continuously (0→1 / 1→0) instead of via
+ * imperative play() calls, so switching direction mid-animation always
+ * reverses smoothly from wherever it currently is — no jump, no queueing. */
+export const ICON_FORWARD_DURATION = 260;
+/** Reverse is intentionally quicker than forward — an icon losing focus
+ * should settle back down fast, even if you're already on the next tab. */
+export const ICON_REVERSE_DURATION = 150;
+
 export const INDICATOR_WIDTH = 30;
 export const INDICATOR_HEIGHT = 4;
 /** Sits flush against the bar's own top border instead of inset below it. */
@@ -24,10 +32,24 @@ export const GLOW_TRAVEL_DELAY = 220;
 /** How long the "pour" (top-to-bottom reveal) itself takes once it starts. */
 export const GLOW_FALL_DURATION = 260;
 
-/** Clipped inside the bar's own rounded shape, so height matches the bar exactly. Narrow — hugs the icon, not the whole tab segment. */
-export const GLOW_WIDTH_TOP = 12;
-export const GLOW_WIDTH_BOTTOM = 40;
-export const GLOW_HEIGHT = TAB_BAR_HEIGHT;
+/**
+ * The glow is sized as a ratio of each tab's own measured width rather
+ * than a fixed pixel value, so the "halo" hugs every icon with the same
+ * proportional space around it — a 4-tab bar on a small phone and a wide
+ * tablet both end up looking identical instead of the fixed-px version
+ * being cramped on one and lost on the other.
+ */
+export const GLOW_WIDTH_TOP_RATIO = 0.14;
+export const GLOW_WIDTH_BOTTOM_RATIO = 0.46;
+/** Used only for the very first frame, before any tab has been measured. */
+export const GLOW_WIDTH_TOP_FALLBACK = 12;
+export const GLOW_WIDTH_BOTTOM_FALLBACK = 40;
+
+/** Fraction of the bar's height the light "pours" down to. Previously
+ * 100% (the full bar height), which ran the glow all the way to the
+ * bottom edge — now it eases off just past the icon instead of lighting
+ * up empty space beneath it. */
+export const GLOW_HEIGHT = TAB_BAR_HEIGHT * 0.68;
 
 export const SPRING_CONFIG = {
   damping: 16,

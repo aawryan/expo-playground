@@ -11,16 +11,28 @@ import Svg, {
 import { colors } from "@/lib/theme/colors";
 import {
   GLOW_HEIGHT,
-  GLOW_WIDTH_BOTTOM,
-  GLOW_WIDTH_TOP,
+  GLOW_WIDTH_BOTTOM_FALLBACK,
+  GLOW_WIDTH_TOP_FALLBACK,
 } from "./tab-bar.constants";
 
-function TabBarGlowBase() {
-  const width = GLOW_WIDTH_BOTTOM;
+interface TabBarGlowProps {
+  /** Bottom (icon-side) and top (indicator-side) widths, in px. Passed in
+   * as a ratio of each tab's *measured* width so the halo keeps the same
+   * proportional space around every icon regardless of screen size —
+   * falls back to fixed values only for the first unmeasured frame. */
+  widthBottom?: number;
+  widthTop?: number;
+}
+
+function TabBarGlowBase({
+  widthBottom = GLOW_WIDTH_BOTTOM_FALLBACK,
+  widthTop = GLOW_WIDTH_TOP_FALLBACK,
+}: TabBarGlowProps) {
+  const width = widthBottom;
   const height = GLOW_HEIGHT;
   const half = width / 2;
-  const topLeft = half - GLOW_WIDTH_TOP / 2;
-  const topRight = half + GLOW_WIDTH_TOP / 2;
+  const topLeft = half - widthTop / 2;
+  const topRight = half + widthTop / 2;
 
   // Narrow where it meets the indicator, wide where it reaches the icon —
   // a clip shape only; the actual color comes from a single, reliably-soft
