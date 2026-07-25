@@ -1,6 +1,6 @@
 node_modules/
 .expo/
-.vscode/
+.vscode/settings.json
 store-assets/
 android/
 ios/
