@@ -42,6 +42,11 @@ import type { TabBarProps, TabLayout } from "./tab-bar.types";
 export function TabBar({ state, navigation, insets }: TabBarProps) {
   const [layouts, setLayouts] = useState<Record<number, TabLayout>>({});
   const hasMeasuredInitial = useRef(false);
+  // Mirrors hasMeasuredInitial, but as state rather than a ref: it needs
+  // to actually trigger a re-render, since it's what switches the very
+  // first paint from a plain (non-Reanimated) fallback over to the
+  // Animated.View version. See the render below for why.
+  const [isReadyForAnimation, setIsReadyForAnimation] = useState(false);
   const reduceMotion = useReduceMotionEnabled();
   const scrollToTop = useScrollToTop();
   // Timestamp of the last press per tab index, for double-tap detection.
@@ -86,6 +91,7 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
       glowX.value = glowTarget;
       glowReveal.value = 1;
       hasMeasuredInitial.current = true;
+      setIsReadyForAnimation(true);
       return;
     }
 
@@ -139,6 +145,17 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
     height: glowReveal.value * GLOW_HEIGHT,
   }));
 
+  // Plain (non-Reanimated) target positions, computed directly at render
+  // time — used only for the fallback below, for the window between
+  // "we just got a real measurement" and "the effect above has had a
+  // chance to hand off to Reanimated".
+  const staticIndicatorTarget = activeLayout
+    ? activeLayout.x + activeLayout.width / 2 - indicatorWidth / 2
+    : 0;
+  const staticGlowTarget = activeLayout
+    ? activeLayout.x + activeLayout.width / 2 - glowWidthBottom / 2
+    : 0;
+
   const handleLayoutFor = useCallback(
     (index: number) => (layout: TabLayout) => {
       // On the very first layout pass (especially on Android), a flex
@@ -182,28 +199,74 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
     >
       <View style={styles.bar}>
         <View style={styles.glowClip} pointerEvents="none">
-          <Animated.View style={[styles.glow, glowStyle]}>
-            <Animated.View
+          {isReadyForAnimation ? (
+            <Animated.View style={[styles.glow, glowStyle]}>
+              <Animated.View
+                style={[
+                  styles.glowReveal,
+                  { width: glowWidthBottom },
+                  glowRevealStyle,
+                ]}
+              >
+                <TabBarGlow
+                  widthBottom={glowWidthBottom}
+                  widthTop={glowWidthTop}
+                />
+              </Animated.View>
+            </Animated.View>
+          ) : activeLayout ? (
+            // Plain View, not Animated.View: this renders through React
+            // Native's normal bridge/commit path the instant we have a
+            // real measurement, with zero dependency on Reanimated's
+            // UI-thread timing — which is what a bare shared-value
+            // assignment on a genuine cold start was silently missing.
+            // Once the effect above hands off to Reanimated (same
+            // target values, so no visible jump), isReadyForAnimation
+            // flips and this branch is never shown again.
+            <View
               style={[
-                styles.glowReveal,
-                { width: glowWidthBottom },
-                glowRevealStyle,
+                styles.glow,
+                { transform: [{ translateX: staticGlowTarget }] },
               ]}
             >
-              <TabBarGlow
-                widthBottom={glowWidthBottom}
-                widthTop={glowWidthTop}
-              />
-            </Animated.View>
-          </Animated.View>
+              <View
+                style={[
+                  styles.glowReveal,
+                  { width: glowWidthBottom, height: GLOW_HEIGHT },
+                ]}
+              >
+                <TabBarGlow
+                  widthBottom={glowWidthBottom}
+                  widthTop={glowWidthTop}
+                />
+              </View>
+            </View>
+          ) : null}
         </View>
 
         {/* Indicator is a normal child of the bar now — fully inside the
             pill, not a sibling poking above its rounded edge. */}
-        <Animated.View
-          style={[styles.indicator, { width: indicatorWidth }, indicatorStyle]}
-          pointerEvents="none"
-        />
+        {isReadyForAnimation ? (
+          <Animated.View
+            style={[
+              styles.indicator,
+              { width: indicatorWidth },
+              indicatorStyle,
+            ]}
+            pointerEvents="none"
+          />
+        ) : activeLayout ? (
+          <View
+            style={[
+              styles.indicator,
+              {
+                width: indicatorWidth,
+                transform: [{ translateX: staticIndicatorTarget }],
+              },
+            ]}
+            pointerEvents="none"
+          />
+        ) : null}
 
         {state.routes.map((route, index) => {
           const config = TAB_ICON_CONFIG.find(
