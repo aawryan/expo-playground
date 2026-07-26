@@ -7,7 +7,9 @@ import {
   type ViewStyle,
 } from "react-native";
 
+import { ensureHitSlop } from "@/lib/responsive";
 import { TabBarIcon } from "./tab-bar-icon";
+import { ICON_SIZE } from "./tab-bar.constants";
 import type { TabLayout } from "./tab-bar.types";
 
 interface TabBarButtonProps {
@@ -51,7 +53,7 @@ function TabBarButtonBase({
       onPress={onPress}
       onLongPress={onLongPress}
       onLayout={handleLayout}
-      hitSlop={8}
+      hitSlop={ensureHitSlop(ICON_SIZE)}
       style={style}
     >
       <TabBarIcon

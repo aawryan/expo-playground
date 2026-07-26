@@ -1,4 +1,5 @@
 import { jiosaavnClient } from "@/lib/api/clients";
+import { interleaveEqually } from "@/lib/utils/mix";
 import type {
   HomeArtwork,
   HomeChart,
@@ -111,27 +112,45 @@ function normalizePlaylistSong(raw: JiosaavnSongResponse): PlaylistSong {
 // The wrapper doesn't expose a dedicated "trending"/"home" endpoint (it
 // mirrors JioSaavn's own search-first API surface) — so trending/new
 // content is sourced via curated search queries per language instead.
-// This is the one spot to swap in a real trending endpoint later if
-// NepoTuneAPI adds one.
-const TRENDING_QUERY: Record<HomeLanguage, string> = {
-  Hindi: "Bollywood Trending",
-  English: "English Trending Hits",
+//
+// BUG FIX: these queries used to literally contain the words "Trending"
+// and "Top Charts" ("Bollywood Trending", "English Trending Hits", the
+// /search/playlists query "Top Charts" below). JioSaavn's search matches
+// query text against titles, so it was surfacing songs/playlists whose
+// title *literally contains the word "Trending"* (random trending-
+// megamix uploads, etc.) rather than genuinely trending music — that's
+// the root cause of the odd/irrelevant titles. Replaced with real
+// descriptive genre/mood queries. Each language also now mixes *two*
+// distinct real queries instead of one static string, so the section
+// isn't the exact same 10 results every single time the app opens.
+const TRENDING_QUERIES: Record<HomeLanguage, [string, string]> = {
+  Hindi: ["Bollywood Hit Songs", "Hindi Party Anthems"],
+  English: ["English Pop Hits", "Billboard Hot Hits"],
 };
 
-const NEW_RELEASES_QUERY: Record<HomeLanguage, string> = {
-  Hindi: "New Hindi Songs",
-  English: "New English Songs",
+const NEW_RELEASES_QUERIES: Record<HomeLanguage, [string, string]> = {
+  Hindi: ["New Bollywood Songs", "Latest Hindi Music"],
+  English: ["New English Songs", "Latest Pop Releases"],
 };
+
+/** Runs two same-provider query variants in parallel and interleaves them — real variety instead of one static query's fixed top-N. */
+async function fetchTwoQueriesMixed(
+  queries: [string, string],
+  fetchOne: (query: string) => Promise<HomeTrack[]>,
+): Promise<HomeTrack[]> {
+  const [a, b] = await Promise.allSettled(queries.map(fetchOne));
+  return interleaveEqually(
+    a.status === "fulfilled" ? a.value : [],
+    b.status === "fulfilled" ? b.value : [],
+  );
+}
 
 export async function fetchJiosaavnTrending(
   language: HomeLanguage,
 ): Promise<HomeTrack[]> {
-  const { data } = await jiosaavnClient.get<
-    JiosaavnSearchEnvelope<JiosaavnSongResponse>
-  >("/search/songs", {
-    params: { query: TRENDING_QUERY[language], limit: 10 },
-  });
-  return (data?.data?.results ?? []).map(normalizeSong);
+  return fetchTwoQueriesMixed(TRENDING_QUERIES[language], (query) =>
+    fetchJiosaavnSongSearch(query, 15),
+  );
 }
 
 /**
@@ -152,27 +171,44 @@ export async function fetchJiosaavnSongSearch(
 export async function fetchJiosaavnNewReleases(
   language: HomeLanguage,
 ): Promise<HomeTrack[]> {
-  const { data } = await jiosaavnClient.get<
-    JiosaavnSearchEnvelope<JiosaavnSongResponse>
-  >("/search/songs", {
-    params: { query: NEW_RELEASES_QUERY[language], limit: 10 },
-  });
-  return (data?.data?.results ?? []).map(normalizeSong);
+  return fetchTwoQueriesMixed(NEW_RELEASES_QUERIES[language], (query) =>
+    fetchJiosaavnSongSearch(query, 15),
+  );
 }
+
+const CHARTS_QUERIES: [string, string] = [
+  "Bollywood Top Playlist",
+  "English Top Playlist",
+];
 
 export async function fetchJiosaavnCharts(): Promise<HomeChart[]> {
-  const { data } = await jiosaavnClient.get<
-    JiosaavnSearchEnvelope<JiosaavnAlbumOrPlaylistResponse>
-  >("/search/playlists", { params: { query: "Top Charts", limit: 8 } });
+  const fetchOne = async (query: string): Promise<HomeChart[]> => {
+    const { data } = await jiosaavnClient.get<
+      JiosaavnSearchEnvelope<JiosaavnAlbumOrPlaylistResponse>
+    >("/search/playlists", { params: { query, limit: 15 } });
+    return (data?.data?.results ?? []).map((raw) => ({
+      id: raw.id,
+      source: "jiosaavn" as const,
+      title: raw.name,
+      subtitle: raw.songCount ? `${raw.songCount} songs` : undefined,
+      artwork: bestArtwork(raw.image),
+    }));
+  };
 
-  return (data?.data?.results ?? []).map((raw) => ({
-    id: raw.id,
-    source: "jiosaavn" as const,
-    title: raw.name,
-    subtitle: raw.songCount ? `${raw.songCount} songs` : undefined,
-    artwork: bestArtwork(raw.image),
-  }));
+  const [a, b] = await Promise.allSettled(CHARTS_QUERIES.map(fetchOne));
+  return interleaveEqually(
+    a.status === "fulfilled" ? a.value : [],
+    b.status === "fulfilled" ? b.value : [],
+  );
 }
+
+// BUG FIX (confirmed by reading NepoTuneAPI's actual route source,
+// github.com/Sandipeyy/NepoTuneAPI — src/modules/playlists/controllers/
+// playlist.controller.ts): /playlists defaults `limit` to 10 server-side
+// when the caller doesn't pass one. This was called with no limit at
+// all, which is exactly why every JioSaavn playlist/chart capped out at
+// 10 playable songs no matter how big the real playlist was.
+const JIOSAAVN_PLAYLIST_SONG_LIMIT = 50;
 
 export async function fetchJiosaavnPlaylistDetail(
   id: string,
@@ -181,12 +217,12 @@ export async function fetchJiosaavnPlaylistDetail(
   try {
     const response = await jiosaavnClient.get<
       JiosaavnDetailEnvelope<JiosaavnAlbumOrPlaylistResponse>
-    >("/playlists", { params: { id } });
+    >("/playlists", { params: { id, limit: JIOSAAVN_PLAYLIST_SONG_LIMIT } });
     data = response.data?.data;
   } catch {
     const response = await jiosaavnClient.get<
       JiosaavnDetailEnvelope<JiosaavnAlbumOrPlaylistResponse>
-    >("/albums", { params: { id } });
+    >("/albums", { params: { id, limit: JIOSAAVN_PLAYLIST_SONG_LIMIT } });
     data = response.data?.data;
   }
 

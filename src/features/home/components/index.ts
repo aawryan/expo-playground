@@ -2,6 +2,7 @@ export { AmbientGlow } from "./ambient-glow";
 export { ChartCard } from "./chart-card";
 export { ChartsGrid } from "./charts-grid";
 export { HomeHero } from "./home-hero";
+export { HomeSectionState } from "./home-section-state";
 export {
   ChartsGridSkeleton,
   SectionErrorView,

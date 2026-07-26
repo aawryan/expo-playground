@@ -27,3 +27,12 @@ export function isTabletWidth(
 ): boolean {
   return width >= BREAKPOINTS.medium;
 }
+
+/** Sub-360dp covers older/budget Android phones and a foldable's cover screen. */
+const SMALL_DEVICE_WIDTH = 360;
+
+export function isSmallDeviceWidth(
+  width: number = Dimensions.get("window").width,
+): boolean {
+  return width < SMALL_DEVICE_WIDTH;
+}

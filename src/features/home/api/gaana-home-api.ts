@@ -31,7 +31,12 @@ interface GaanaStreamUrls {
 
 /** Picks the best available quality, falling back down the ladder. */
 function highestQualityStreamUrl(urls?: GaanaStreamUrls): string | undefined {
-  return urls?.very_high_quality ?? urls?.high_quality ?? urls?.medium_quality ?? urls?.low_quality;
+  return (
+    urls?.very_high_quality ??
+    urls?.high_quality ??
+    urls?.medium_quality ??
+    urls?.low_quality
+  );
 }
 
 // Shape confirmed against the GaanaPy README's example track response
@@ -78,9 +83,23 @@ function normalizePlaylistSong(raw: GaanaTrackResponse): PlaylistSong {
 // was failing validation and coming back as an error, which is why
 // these two sections showed "load nahi ho paaye" while /charts (which
 // takes no params) loaded fine.
-export async function fetchTrending(language: HomeLanguage): Promise<HomeTrack[]> {
+//
+// BUG FIX 2 (confirmed by reading GaanaPy's actual FastAPI source,
+// github.com/ZingyTomato/GaanaPy/blob/main/app.py): every one of these
+// three endpoints defaults `limit` to 10 server-side when the caller
+// doesn't pass one — which is exactly why Trending/New Releases/Charts
+// all felt thin. `MAX_LIMIT` there is 100; we ask for a generous chunk
+// of that (not the max, to keep response time reasonable) rather than
+// silently taking the API's default floor.
+const GAANA_TRACK_LIMIT = 30;
+const GAANA_CHART_LIMIT = 60;
+
+export async function fetchTrending(
+  language: HomeLanguage,
+  limit = GAANA_TRACK_LIMIT,
+): Promise<HomeTrack[]> {
   const { data } = await gaanaClient.get<GaanaTrackResponse[]>("/trending", {
-    params: { language },
+    params: { language, limit },
   });
   return (data ?? []).map(normalizeTrack);
 }
@@ -95,11 +114,13 @@ interface GaanaNewReleasesResponse {
   albums?: unknown[];
 }
 
-export async function fetchNewReleases(language: HomeLanguage): Promise<HomeTrack[]> {
-  const { data } = await gaanaClient.get<GaanaNewReleasesResponse | GaanaTrackResponse[]>(
-    "/newreleases",
-    { params: { language } },
-  );
+export async function fetchNewReleases(
+  language: HomeLanguage,
+  limit = GAANA_TRACK_LIMIT,
+): Promise<HomeTrack[]> {
+  const { data } = await gaanaClient.get<
+    GaanaNewReleasesResponse | GaanaTrackResponse[]
+  >("/newreleases", { params: { language, limit } });
   const songs = Array.isArray(data) ? data : (data?.songs ?? []);
   return songs.map(normalizeTrack);
 }
@@ -109,20 +130,29 @@ export async function fetchNewReleases(language: HomeLanguage): Promise<HomeTrac
 // names below (seokey/title/images) are inferred from the consistent
 // shape used elsewhere in the API; verify against a live response and
 // adjust here if a field comes back under a different name.
+//
+// `language` IS confirmed real (present in GaanaPy's own
+// format_json_charts output) — `subtitle` never was, it was a guess
+// that always came back undefined. Using `language` instead means the
+// card actually shows something instead of silently showing nothing.
 interface GaanaChartResponse {
   seokey?: string;
   title: string;
-  subtitle?: string;
+  language?: string;
   images?: { urls?: GaanaArtworkUrls };
 }
 
-export async function fetchCharts(): Promise<HomeChart[]> {
-  const { data } = await gaanaClient.get<GaanaChartResponse[]>("/charts");
+export async function fetchCharts(
+  limit = GAANA_CHART_LIMIT,
+): Promise<HomeChart[]> {
+  const { data } = await gaanaClient.get<GaanaChartResponse[]>("/charts", {
+    params: { limit },
+  });
   return (data ?? []).map((raw, index) => ({
     id: raw.seokey ?? `chart-${index}`,
     source: "gaana" as const,
     title: raw.title,
-    subtitle: raw.subtitle,
+    subtitle: raw.language,
     artwork: normalizeArtwork(raw.images?.urls),
   }));
 }
@@ -130,9 +160,18 @@ export async function fetchCharts(): Promise<HomeChart[]> {
 // Playlist/chart/album detail — GaanaPy exposes both `/playlists/info`
 // and `/albums/info`, both keyed by `seokey` and both returning a
 // `tracks` list of the same track object used everywhere else in the
-// API. We try playlist first (top charts entries are playlists) and
-// fall back to album so this also works if a chart entry turns out to
-// be album-shaped.
+// API. Top-charts entries are usually playlists, but GaanaPy's own
+// /charts implementation (unlike /newreleases) does NOT filter its
+// results by entity_type before returning them — confirmed by reading
+// its source (api/charts/charts.py: format_json_charts just formats
+// whatever /charts returns, with no AL/TR/etc check). So an occasional
+// chart card's seokey resolves as neither a playlist nor an album, and
+// there's no third fallback to try — that's the real cause of the rare
+// "no songs found" a chart card can hit on open, not something wrong on
+// our end for that specific card. Firing both lookups in parallel
+// (rather than the previous sequential try/catch) at least means we're
+// not needlessly waiting on the always-fails one before trying the
+// other.
 interface GaanaDetailResponse {
   title: string;
   subtitle?: string;
@@ -140,16 +179,28 @@ interface GaanaDetailResponse {
   tracks?: GaanaTrackResponse[];
 }
 
-export async function fetchGaanaPlaylistDetail(seokey: string): Promise<PlaylistDetail> {
-  let data: GaanaDetailResponse;
-  try {
-    ({ data } = await gaanaClient.get<GaanaDetailResponse>("/playlists/info", {
+export async function fetchGaanaPlaylistDetail(
+  seokey: string,
+): Promise<PlaylistDetail> {
+  const [playlistResult, albumResult] = await Promise.allSettled([
+    gaanaClient.get<GaanaDetailResponse>("/playlists/info", {
       params: { seokey },
-    }));
-  } catch {
-    ({ data } = await gaanaClient.get<GaanaDetailResponse>("/albums/info", {
+    }),
+    gaanaClient.get<GaanaDetailResponse>("/albums/info", {
       params: { seokey },
-    }));
+    }),
+  ]);
+
+  const data =
+    playlistResult.status === "fulfilled" &&
+    playlistResult.value.data?.tracks?.length
+      ? playlistResult.value.data
+      : albumResult.status === "fulfilled"
+        ? albumResult.value.data
+        : undefined;
+
+  if (!data) {
+    throw new Error("Gaana playlist/album detail returned no data.");
   }
 
   return {

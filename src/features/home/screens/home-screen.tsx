@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -13,8 +13,8 @@ import {
   ChartsGrid,
   ChartsGridSkeleton,
   HomeHero,
+  HomeSectionState,
   LanguagePillTabs,
-  SectionErrorView,
   SectionHeader,
   SpotlightCard,
   TrackRow,
@@ -22,6 +22,7 @@ import {
 } from "../components";
 import {
   useCharts,
+  useGenreRows,
   useNewReleases,
   useTrendingByLanguage,
 } from "../hooks/use-home-feed";
@@ -48,6 +49,7 @@ export function HomeScreen() {
   const trendingQueries = useTrendingByLanguage();
   const newReleasesQuery = useNewReleases();
   const chartsQuery = useCharts();
+  const genreRows = useGenreRows();
   const playQueue = usePlayerStore((state) => state.playQueue);
 
   useRegisterScrollToTop(
@@ -60,6 +62,16 @@ export function HomeScreen() {
   const activeTrendingIndex = TRENDING_LANGUAGES.indexOf(trendingLanguage);
   const activeTrendingQuery = trendingQueries[activeTrendingIndex];
   const spotlightTrack = activeTrendingQuery?.data?.[0];
+
+  // The Spotlight card above already features trending[0] — repeating it
+  // as the first card of the Trending Now row directly below read as a
+  // glitch (same song shown twice back to back). Everything from
+  // trending[1] onward is still shown there.
+  const trendingRowTracks = useMemo(() => {
+    const data = activeTrendingQuery?.data;
+    if (!data) return data;
+    return spotlightTrack ? data.slice(1) : data;
+  }, [activeTrendingQuery?.data, spotlightTrack]);
 
   function playFromList(list: HomeTrack[], track: HomeTrack) {
     const index = list.findIndex(
@@ -108,22 +120,23 @@ export function HomeScreen() {
             value={trendingLanguage}
             onChange={setTrendingLanguage}
           />
-          {activeTrendingQuery?.isLoading ? (
-            <TrackRowSkeleton />
-          ) : activeTrendingQuery?.isError ? (
-            <SectionErrorView
-              message="Trending tracks couldn't load."
-              onRetry={() => activeTrendingQuery?.refetch()}
-            />
-          ) : (
-            <TrackRow
-              tracks={activeTrendingQuery?.data ?? []}
-              variant="trending"
-              onTrackPress={(track) =>
-                playFromList(activeTrendingQuery?.data ?? [], track)
-              }
-            />
-          )}
+          <HomeSectionState
+            isLoading={activeTrendingQuery?.isLoading ?? true}
+            isError={activeTrendingQuery?.isError ?? false}
+            data={trendingRowTracks}
+            errorMessage="Trending tracks load nahi ho paaye."
+            onRetry={() => activeTrendingQuery?.refetch()}
+            renderSkeleton={() => <TrackRowSkeleton />}
+            renderContent={(tracks) => (
+              <TrackRow
+                tracks={tracks}
+                variant="trending"
+                onTrackPress={(track) =>
+                  playFromList(activeTrendingQuery?.data ?? [], track)
+                }
+              />
+            )}
+          />
         </View>
 
         <View style={styles.section}>
@@ -131,41 +144,59 @@ export function HomeScreen() {
             title="New Releases"
             subtitle="Fresh from Hindi & English"
           />
-          {newReleasesQuery.isLoading ? (
-            <TrackRowSkeleton />
-          ) : newReleasesQuery.isError ? (
-            <SectionErrorView
-              message="New releases couldn't load."
-              onRetry={() => newReleasesQuery.refetch()}
-            />
-          ) : (
-            <TrackRow
-              tracks={newReleasesQuery.data ?? []}
-              variant="new"
-              staggered
-              onTrackPress={(track) =>
-                playFromList(newReleasesQuery.data ?? [], track)
-              }
-            />
-          )}
+          <HomeSectionState
+            isLoading={newReleasesQuery.isLoading}
+            isError={newReleasesQuery.isError}
+            data={newReleasesQuery.data}
+            errorMessage="New releases load nahi ho paaye."
+            onRetry={() => newReleasesQuery.refetch()}
+            renderSkeleton={() => <TrackRowSkeleton />}
+            renderContent={(tracks) => (
+              <TrackRow
+                tracks={tracks}
+                variant="new"
+                staggered
+                onTrackPress={(track) => playFromList(tracks, track)}
+              />
+            )}
+          />
         </View>
 
         <View style={styles.section}>
           <SectionHeader title="Top Charts" />
-          {chartsQuery.isLoading ? (
-            <ChartsGridSkeleton />
-          ) : chartsQuery.isError ? (
-            <SectionErrorView
-              message="Charts couldn't load."
-              onRetry={() => chartsQuery.refetch()}
-            />
-          ) : (
-            <ChartsGrid
-              charts={chartsQuery.data ?? []}
-              onChartPress={openChart}
-            />
-          )}
+          <HomeSectionState
+            isLoading={chartsQuery.isLoading}
+            isError={chartsQuery.isError}
+            data={chartsQuery.data}
+            errorMessage="Charts load nahi ho paaye."
+            onRetry={() => chartsQuery.refetch()}
+            renderSkeleton={() => <ChartsGridSkeleton />}
+            renderContent={(charts) => (
+              <ChartsGrid charts={charts} onChartPress={openChart} />
+            )}
+          />
         </View>
+
+        {genreRows.map(({ genre, query }) => (
+          <View key={genre.id} style={styles.section}>
+            <SectionHeader title={genre.label} subtitle={genre.tagline} />
+            <HomeSectionState
+              isLoading={query.isLoading}
+              isError={query.isError}
+              data={query.data}
+              errorMessage={`${genre.label} load nahi ho paaya.`}
+              onRetry={() => query.refetch()}
+              renderSkeleton={() => <TrackRowSkeleton />}
+              renderContent={(tracks) => (
+                <TrackRow
+                  tracks={tracks}
+                  variant="new"
+                  onTrackPress={(track) => playFromList(tracks, track)}
+                />
+              )}
+            />
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,5 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 
+import { fetchGenreTracks } from "@/features/explore/api/explore-api";
+import { EXPLORE_GENRES } from "@/features/explore/constants/genres";
 import { interleaveEqually } from "@/lib/utils/mix";
 import {
   fetchCharts,
@@ -14,6 +16,17 @@ import {
 import type { HomeChart, HomeLanguage, HomeTrack } from "../types/home-content";
 
 const HOME_LANGUAGES: HomeLanguage[] = ["Hindi", "English"];
+
+/**
+ * A few of Explore's genre tiles pulled onto the home feed as their own
+ * rows — same query/fetcher Explore already uses (fetchGenreTracks),
+ * so this adds real variety (party/retro/devotional, as asked for)
+ * without introducing any new, untested data path.
+ */
+const HOME_GENRE_IDS = ["bollywood-party", "retro", "devotional"] as const;
+const HOME_GENRES = EXPLORE_GENRES.filter((genre) =>
+  (HOME_GENRE_IDS as readonly string[]).includes(genre.id),
+);
 
 /**
  * Runs both providers in parallel and mixes their results equally via
@@ -68,4 +81,19 @@ export function useCharts() {
     queryKey: ["home", "charts"],
     queryFn: () => fetchMixed<HomeChart>([fetchCharts, fetchJiosaavnCharts]),
   });
+}
+
+/** One row per curated genre (see HOME_GENRES above), each independently loading/erroring. */
+export function useGenreRows() {
+  const queries = useQueries({
+    queries: HOME_GENRES.map((genre) => ({
+      queryKey: ["home", "genre", genre.id] as const,
+      queryFn: () => fetchGenreTracks(genre, 15),
+    })),
+  });
+
+  return HOME_GENRES.map((genre, index) => ({
+    genre,
+    query: queries[index],
+  }));
 }
