@@ -70,12 +70,18 @@ function bestArtwork(images?: JiosaavnImage[]): HomeArtwork {
 /** Quality arrays are ordered lowest → highest bitrate; prefer an explicit 320kbps, else the last (highest) entry. */
 function highestQualityUrl(links?: JiosaavnDownloadLink[]): string | undefined {
   if (!links || links.length === 0) return undefined;
-  return links.find((link) => link.quality === "320kbps")?.url ?? links[links.length - 1]?.url;
+  return (
+    links.find((link) => link.quality === "320kbps")?.url ??
+    links[links.length - 1]?.url
+  );
 }
 
 function artistNames(song: JiosaavnSongResponse): string {
   if (song.primaryArtists) return song.primaryArtists;
-  return song.artists?.primary?.map((artist) => artist.name).join(", ") ?? "Unknown Artist";
+  return (
+    song.artists?.primary?.map((artist) => artist.name).join(", ") ??
+    "Unknown Artist"
+  );
 }
 
 function normalizeSong(raw: JiosaavnSongResponse): HomeTrack {
@@ -117,19 +123,40 @@ const NEW_RELEASES_QUERY: Record<HomeLanguage, string> = {
   English: "New English Songs",
 };
 
-export async function fetchJiosaavnTrending(language: HomeLanguage): Promise<HomeTrack[]> {
-  const { data } = await jiosaavnClient.get<JiosaavnSearchEnvelope<JiosaavnSongResponse>>(
-    "/search/songs",
-    { params: { query: TRENDING_QUERY[language], limit: 10 } },
-  );
+export async function fetchJiosaavnTrending(
+  language: HomeLanguage,
+): Promise<HomeTrack[]> {
+  const { data } = await jiosaavnClient.get<
+    JiosaavnSearchEnvelope<JiosaavnSongResponse>
+  >("/search/songs", {
+    params: { query: TRENDING_QUERY[language], limit: 10 },
+  });
   return (data?.data?.results ?? []).map(normalizeSong);
 }
 
-export async function fetchJiosaavnNewReleases(language: HomeLanguage): Promise<HomeTrack[]> {
-  const { data } = await jiosaavnClient.get<JiosaavnSearchEnvelope<JiosaavnSongResponse>>(
-    "/search/songs",
-    { params: { query: NEW_RELEASES_QUERY[language], limit: 10 } },
-  );
+/**
+ * Generic song search — powers both Explore's live search box and its
+ * genre/mood tiles (each genre is really just a curated query under the
+ * hood, same as TRENDING_QUERY/NEW_RELEASES_QUERY above).
+ */
+export async function fetchJiosaavnSongSearch(
+  query: string,
+  limit = 20,
+): Promise<HomeTrack[]> {
+  const { data } = await jiosaavnClient.get<
+    JiosaavnSearchEnvelope<JiosaavnSongResponse>
+  >("/search/songs", { params: { query, limit } });
+  return (data?.data?.results ?? []).map(normalizeSong);
+}
+
+export async function fetchJiosaavnNewReleases(
+  language: HomeLanguage,
+): Promise<HomeTrack[]> {
+  const { data } = await jiosaavnClient.get<
+    JiosaavnSearchEnvelope<JiosaavnSongResponse>
+  >("/search/songs", {
+    params: { query: NEW_RELEASES_QUERY[language], limit: 10 },
+  });
   return (data?.data?.results ?? []).map(normalizeSong);
 }
 
@@ -147,7 +174,9 @@ export async function fetchJiosaavnCharts(): Promise<HomeChart[]> {
   }));
 }
 
-export async function fetchJiosaavnPlaylistDetail(id: string): Promise<PlaylistDetail> {
+export async function fetchJiosaavnPlaylistDetail(
+  id: string,
+): Promise<PlaylistDetail> {
   let data: JiosaavnAlbumOrPlaylistResponse | undefined;
   try {
     const response = await jiosaavnClient.get<
