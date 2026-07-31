@@ -7,6 +7,7 @@ import type {
   PlaylistDetail,
   PlaylistSong,
 } from "../types/home-content";
+import { fetchJiosaavnPlaylistDetailByName } from "./jiosaavn-home-api";
 
 interface GaanaArtworkUrls {
   small_artwork?: string;
@@ -165,13 +166,13 @@ export async function fetchCharts(
 // results by entity_type before returning them — confirmed by reading
 // its source (api/charts/charts.py: format_json_charts just formats
 // whatever /charts returns, with no AL/TR/etc check). So an occasional
-// chart card's seokey resolves as neither a playlist nor an album, and
-// there's no third fallback to try — that's the real cause of the rare
-// "no songs found" a chart card can hit on open, not something wrong on
-// our end for that specific card. Firing both lookups in parallel
-// (rather than the previous sequential try/catch) at least means we're
-// not needlessly waiting on the always-fails one before trying the
-// other.
+// chart card's seokey resolves as neither a playlist nor an album on
+// Gaana itself — not something wrong on our end for that specific card.
+// Firing both lookups in parallel (rather than the previous sequential
+// try/catch) means we're not needlessly waiting on the always-fails one
+// before trying the other. When both come back empty, we fall through
+// to a JioSaavn playlist search by (de-slugified) name below instead of
+// dead-ending on the error state — see `fetchJiosaavnPlaylistDetailByName`.
 interface GaanaDetailResponse {
   title: string;
   subtitle?: string;
@@ -195,20 +196,32 @@ export async function fetchGaanaPlaylistDetail(
     playlistResult.status === "fulfilled" &&
     playlistResult.value.data?.tracks?.length
       ? playlistResult.value.data
-      : albumResult.status === "fulfilled"
+      : albumResult.status === "fulfilled" &&
+          albumResult.value.data?.tracks?.length
         ? albumResult.value.data
         : undefined;
 
-  if (!data) {
-    throw new Error("Gaana playlist/album detail returned no data.");
+  if (data) {
+    return {
+      id: seokey,
+      source: "gaana",
+      title: data.title,
+      subtitle: data.subtitle,
+      artwork: normalizeArtwork(data.images?.urls),
+      songs: (data.tracks ?? []).map(normalizePlaylistSong),
+    };
   }
 
-  return {
-    id: seokey,
-    source: "gaana",
-    title: data.title,
-    subtitle: data.subtitle,
-    artwork: normalizeArtwork(data.images?.urls),
-    songs: (data.tracks ?? []).map(normalizePlaylistSong),
-  };
+  // Neither Gaana lookup resolved (see the comment above) — rather than
+  // dead-ending on the error state, try the same content by name on
+  // JioSaavn instead. seokeys are slugified titles (e.g.
+  // "gaana-dj-gaana-international-top-50" → "gaana dj gaana
+  // international top 50"), which is close enough to the real title for
+  // JioSaavn's playlist search to find the equivalent playlist.
+  const fallback = await fetchJiosaavnPlaylistDetailByName(
+    seokey.replace(/-/g, " "),
+  );
+  if (fallback) return fallback;
+
+  throw new Error("Gaana playlist/album detail returned no data.");
 }

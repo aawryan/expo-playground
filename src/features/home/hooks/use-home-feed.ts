@@ -2,7 +2,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { fetchGenreTracks } from "@/features/explore/api/explore-api";
 import { EXPLORE_GENRES } from "@/features/explore/constants/genres";
-import { interleaveEqually } from "@/lib/utils/mix";
+import { dedupeByKey, interleaveEqually } from "@/lib/utils/mix";
 import {
   fetchCharts,
   fetchNewReleases,
@@ -37,13 +37,23 @@ const HOME_GENRES = EXPLORE_GENRES.filter((genre) =>
  */
 async function fetchMixed<T>(
   fetchers: Array<() => Promise<T[]>>,
+  dedupeKey?: (item: T) => string,
 ): Promise<T[]> {
   const settled = await Promise.allSettled(fetchers.map((fetch) => fetch()));
   const lists = settled.map((result) =>
     result.status === "fulfilled" ? result.value : [],
   );
-  return lists.reduce((mixed, list) => interleaveEqually(mixed, list));
+  const mixed = lists.reduce((acc, list) => interleaveEqually(acc, list));
+  return dedupeKey ? dedupeByKey(mixed, dedupeKey) : mixed;
 }
+
+/** Normalizes title+artist so "Kesariya" from Gaana and "Kesariya" from
+ * JioSaavn collapse to one card instead of showing the same song twice
+ * back to back, which is what an id-only check would have missed. */
+const trackDedupeKey = (track: HomeTrack) =>
+  `${track.title.trim().toLowerCase()}::${track.artists.trim().toLowerCase()}`;
+
+const chartDedupeKey = (chart: HomeChart) => chart.title.trim().toLowerCase();
 
 /** One query per language so a slow/failed language never blocks the other. */
 export function useTrendingByLanguage() {
@@ -51,10 +61,10 @@ export function useTrendingByLanguage() {
     queries: HOME_LANGUAGES.map((lang) => ({
       queryKey: ["home", "trending", lang] as const,
       queryFn: () =>
-        fetchMixed<HomeTrack>([
-          () => fetchTrending(lang),
-          () => fetchJiosaavnTrending(lang),
-        ]),
+        fetchMixed<HomeTrack>(
+          [() => fetchTrending(lang), () => fetchJiosaavnTrending(lang)],
+          trackDedupeKey,
+        ),
     })),
   });
 }
@@ -65,13 +75,19 @@ export function useNewReleases() {
     queryFn: async () => {
       const perLanguage = await Promise.all(
         HOME_LANGUAGES.map((lang) =>
-          fetchMixed<HomeTrack>([
-            () => fetchNewReleases(lang),
-            () => fetchJiosaavnNewReleases(lang),
-          ]),
+          fetchMixed<HomeTrack>(
+            [
+              () => fetchNewReleases(lang),
+              () => fetchJiosaavnNewReleases(lang),
+            ],
+            trackDedupeKey,
+          ),
         ),
       );
-      return perLanguage.flat();
+      // Also dedupe across the two language buckets themselves — a song
+      // occasionally gets tagged under both Hindi and English between the
+      // two providers, which would otherwise still show it twice.
+      return dedupeByKey(perLanguage.flat(), trackDedupeKey);
     },
   });
 }
@@ -79,7 +95,8 @@ export function useNewReleases() {
 export function useCharts() {
   return useQuery({
     queryKey: ["home", "charts"],
-    queryFn: () => fetchMixed<HomeChart>([fetchCharts, fetchJiosaavnCharts]),
+    queryFn: () =>
+      fetchMixed<HomeChart>([fetchCharts, fetchJiosaavnCharts], chartDedupeKey),
   });
 }
 

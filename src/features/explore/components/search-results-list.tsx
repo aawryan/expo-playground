@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { SongRow } from "@/features/playlist/components";
 import type { HomeTrack } from "@/features/home/types/home-content";
+import { SongRow } from "@/features/playlist/components";
 import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
@@ -45,7 +45,7 @@ export function SearchResultsList({
           color={colors.textTertiary}
         />
         <Text style={[typography.body, styles.message]}>
-          Search abhi load nahi ho paayi.
+          Search couldn't be loaded right now.
         </Text>
       </View>
     );
@@ -60,7 +60,7 @@ export function SearchResultsList({
           color={colors.textTertiary}
         />
         <Text style={[typography.body, styles.message]}>
-          "{query}" ke liye kuch nahi mila.
+          No results found for "{query}".
         </Text>
       </View>
     );

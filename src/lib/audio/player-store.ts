@@ -1,10 +1,13 @@
 import { create } from "zustand";
 
+import type { ContentSource } from "@/features/home/types/home-content";
+import { useLibraryStore } from "@/features/library/store/library-store";
 import { audioPlayer } from "./player";
 
 /** Minimal shape the player needs — both HomeTrack and PlaylistSong satisfy this already. */
 export interface PlayerTrack {
   id: string;
+  source: ContentSource;
   title: string;
   artists: string;
   artworkUrl?: string;
@@ -43,21 +46,41 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   playQueue: (queue, startIndex) => {
     const track = queue[startIndex];
     const started = loadAndPlay(track);
+    if (started && track) {
+      useLibraryStore.getState().addToHistory({
+        id: track.id,
+        source: track.source,
+        title: track.title,
+        artists: track.artists,
+        artworkUrl: track.artworkUrl,
+        streamUrl: track.streamUrl,
+      });
+    }
     set({
       queue,
       currentIndex: startIndex,
       isPlaying: started,
-      lastError: started ? null : "Yeh track abhi stream nahi ho sakta.",
+      lastError: started ? null : "This track can't be streamed right now.",
     });
   },
 
   playTrack: (track) => {
     const started = loadAndPlay(track);
+    if (started) {
+      useLibraryStore.getState().addToHistory({
+        id: track.id,
+        source: track.source,
+        title: track.title,
+        artists: track.artists,
+        artworkUrl: track.artworkUrl,
+        streamUrl: track.streamUrl,
+      });
+    }
     set({
       queue: [track],
       currentIndex: 0,
       isPlaying: started,
-      lastError: started ? null : "Yeh track abhi stream nahi ho sakta.",
+      lastError: started ? null : "This track can't be streamed right now.",
     });
   },
 
@@ -79,7 +102,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({ isPlaying: false });
       return;
     }
-    const started = loadAndPlay(queue[nextIndex]);
+    const track = queue[nextIndex];
+    const started = loadAndPlay(track);
+    if (started && track) {
+      useLibraryStore.getState().addToHistory({
+        id: track.id,
+        source: track.source,
+        title: track.title,
+        artists: track.artists,
+        artworkUrl: track.artworkUrl,
+        streamUrl: track.streamUrl,
+      });
+    }
     set({ currentIndex: nextIndex, isPlaying: started });
   },
 
@@ -87,7 +121,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { queue, currentIndex } = get();
     const prevIndex = currentIndex - 1;
     if (prevIndex < 0) return;
-    const started = loadAndPlay(queue[prevIndex]);
+    const track = queue[prevIndex];
+    const started = loadAndPlay(track);
+    if (started && track) {
+      useLibraryStore.getState().addToHistory({
+        id: track.id,
+        source: track.source,
+        title: track.title,
+        artists: track.artists,
+        artworkUrl: track.artworkUrl,
+        streamUrl: track.streamUrl,
+      });
+    }
     set({ currentIndex: prevIndex, isPlaying: started });
   },
 

@@ -13,3 +13,24 @@ export function interleaveEqually<T>(a: T[], b: T[]): T[] {
   }
   return result;
 }
+
+/**
+ * Drops later items whose `key(item)` repeats one already kept, keeping
+ * first-seen order. Gaana and JioSaavn each independently report largely
+ * the same trending/new Bollywood tracks, but under different provider
+ * ids (a Gaana `seokey` and a JioSaavn id are never equal for "the same"
+ * song) — so an id-based Set wouldn't have caught this. The caller
+ * should pass a key built from title+artist instead, which is what
+ * actually identifies "the same song" across two different catalogs.
+ */
+export function dedupeByKey<T>(items: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const item of items) {
+    const k = key(item);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    result.push(item);
+  }
+  return result;
+}

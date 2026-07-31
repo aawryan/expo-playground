@@ -2,11 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { SongRow } from "@/features/playlist/components";
 import type { HomeTrack } from "@/features/home/types/home-content";
+import { SongRow } from "@/features/playlist/components";
 import { usePlayerStore } from "@/lib/audio/player-store";
 import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
@@ -21,6 +27,7 @@ interface GenreScreenProps {
 function toPlayerTrack(track: HomeTrack) {
   return {
     id: track.id,
+    source: track.source,
     title: track.title,
     artists: track.artists,
     artworkUrl:
@@ -31,8 +38,7 @@ function toPlayerTrack(track: HomeTrack) {
 
 export function GenreScreen({ genreId }: GenreScreenProps) {
   const router = useRouter();
-  const { genre, data, isLoading, isError, refetch } =
-    useGenreTracks(genreId);
+  const { genre, data, isLoading, isError, refetch } = useGenreTracks(genreId);
 
   const queue = usePlayerStore((state) => state.queue);
   const currentIndex = usePlayerStore((state) => state.currentIndex);
@@ -63,7 +69,7 @@ export function GenreScreen({ genreId }: GenreScreenProps) {
       {!genre ? (
         <View style={styles.centered}>
           <Text style={[typography.body, { color: colors.danger }]}>
-            Ye genre nahi mila.
+            Genre not found.
           </Text>
         </View>
       ) : isLoading ? (
@@ -73,7 +79,7 @@ export function GenreScreen({ genreId }: GenreScreenProps) {
       ) : isError ? (
         <View style={styles.centered}>
           <Text style={[typography.body, { color: colors.danger }]}>
-            {genre.label} load nahi ho paaya.
+            {genre.label} couldn't be loaded.
           </Text>
           <Pressable
             onPress={() => refetch()}
@@ -123,7 +129,7 @@ export function GenreScreen({ genreId }: GenreScreenProps) {
                 </Pressable>
               ) : (
                 <Text style={[typography.caption, styles.emptyNote]}>
-                  Abhi iss mood mein koi track nahi mila.
+                  No tracks found for this mood yet.
                 </Text>
               )}
             </View>

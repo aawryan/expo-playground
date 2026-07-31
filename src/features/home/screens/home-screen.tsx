@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,14 +9,12 @@ import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import {
-  AmbientGlow,
   ChartsGrid,
   ChartsGridSkeleton,
   HomeHero,
   HomeSectionState,
   LanguagePillTabs,
   SectionHeader,
-  SpotlightCard,
   TrackRow,
   TrackRowSkeleton,
 } from "../components";
@@ -61,17 +59,6 @@ export function HomeScreen() {
 
   const activeTrendingIndex = TRENDING_LANGUAGES.indexOf(trendingLanguage);
   const activeTrendingQuery = trendingQueries[activeTrendingIndex];
-  const spotlightTrack = activeTrendingQuery?.data?.[0];
-
-  // The Spotlight card above already features trending[0] — repeating it
-  // as the first card of the Trending Now row directly below read as a
-  // glitch (same song shown twice back to back). Everything from
-  // trending[1] onward is still shown there.
-  const trendingRowTracks = useMemo(() => {
-    const data = activeTrendingQuery?.data;
-    if (!data) return data;
-    return spotlightTrack ? data.slice(1) : data;
-  }, [activeTrendingQuery?.data, spotlightTrack]);
 
   function playFromList(list: HomeTrack[], track: HomeTrack) {
     const index = list.findIndex(
@@ -94,24 +81,12 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <AmbientGlow />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <HomeHero />
-
-        {spotlightTrack ? (
-          <View style={styles.section}>
-            <SpotlightCard
-              track={spotlightTrack}
-              onPress={(track) =>
-                playFromList(activeTrendingQuery?.data ?? [], track)
-              }
-            />
-          </View>
-        ) : null}
 
         <View style={styles.section}>
           <SectionHeader title="Trending Now" />
@@ -123,7 +98,7 @@ export function HomeScreen() {
           <HomeSectionState
             isLoading={activeTrendingQuery?.isLoading ?? true}
             isError={activeTrendingQuery?.isError ?? false}
-            data={trendingRowTracks}
+            data={activeTrendingQuery?.data}
             errorMessage="Trending tracks load nahi ho paaye."
             onRetry={() => activeTrendingQuery?.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}

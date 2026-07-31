@@ -4,20 +4,16 @@ import { useCallback, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AmbientGlow, SectionHeader } from "@/features/home/components";
+import { SectionHeader } from "@/features/home/components";
 import type { HomeTrack } from "@/features/home/types/home-content";
 import { usePlayerStore } from "@/lib/audio/player-store";
 import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
-import {
-  ExploreSearchBar,
-  GenreGrid,
-  SearchResultsList,
-} from "../components";
-import type { ExploreGenre } from "../types/explore-content";
+import { ExploreSearchBar, GenreGrid, SearchResultsList } from "../components";
 import { useGenrePreviews, useSearchTracks } from "../hooks/use-explore";
+import type { ExploreGenre } from "../types/explore-content";
 
 function toPlayerTrack(track: HomeTrack) {
   return {
@@ -62,8 +58,6 @@ export function ExploreScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <AmbientGlow />
-
       <View style={styles.header}>
         <Text style={typography.h1}>Explore</Text>
         <Text style={[typography.body, styles.headerSubtitle]}>

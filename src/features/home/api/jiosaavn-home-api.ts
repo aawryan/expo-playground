@@ -202,6 +202,31 @@ export async function fetchJiosaavnCharts(): Promise<HomeChart[]> {
   );
 }
 
+/**
+ * Finds the closest-matching JioSaavn playlist for a free-text name and
+ * returns its full track detail. Used as a cross-provider fallback (see
+ * `fetchGaanaPlaylistDetail`) for the cases where a Gaana chart's seokey
+ * resolves as neither a playlist nor an album on Gaana's own API — we'd
+ * rather surface the same real playlist via JioSaavn than a dead end.
+ * Picks the result with the most songs, since a same-name shell playlist
+ * with 0-1 tracks is a worse match than a fuller one further down the
+ * search results.
+ */
+export async function fetchJiosaavnPlaylistDetailByName(
+  name: string,
+): Promise<PlaylistDetail | undefined> {
+  const { data } = await jiosaavnClient.get<
+    JiosaavnSearchEnvelope<JiosaavnAlbumOrPlaylistResponse>
+  >("/search/playlists", { params: { query: name, limit: 10 } });
+  const results = data?.data?.results ?? [];
+  if (results.length === 0) return undefined;
+
+  const best = [...results].sort(
+    (a, b) => (b.songCount ?? 0) - (a.songCount ?? 0),
+  )[0];
+  return fetchJiosaavnPlaylistDetail(best.id);
+}
+
 // BUG FIX (confirmed by reading NepoTuneAPI's actual route source,
 // github.com/Sandipeyy/NepoTuneAPI — src/modules/playlists/controllers/
 // playlist.controller.ts): /playlists defaults `limit` to 10 server-side

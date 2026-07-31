@@ -3,14 +3,14 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import logoGlyph from "../../../../assets/images/android-icon-foreground.png";
 import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
+import logoGlyph from "../../../../assets/images/android-icon-foreground.png";
 
-const LOGO_SIZE = moderateScale(22);
-const BADGE_SIZE = LOGO_SIZE + spacing.sm * 2;
+const LOGO_SIZE = moderateScale(30);
+const BADGE_SIZE = LOGO_SIZE + spacing.md * 2;
 
 /**
  * Minimal top bar — brand mark + a way into search. No greeting copy:
@@ -35,7 +35,11 @@ export function HomeHero() {
         accessibilityRole="button"
         accessibilityLabel="Search"
       >
-        <Ionicons name="search" size={moderateScale(18)} color={colors.textPrimary} />
+        <Ionicons
+          name="search"
+          size={moderateScale(18)}
+          color={colors.textPrimary}
+        />
       </Pressable>
     </View>
   );

@@ -16,6 +16,7 @@ import { useScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { TabBarButton } from "./tab-bar-button";
 import { TabBarGlow } from "./tab-bar-glow";
+import { TabBarTooltip } from "./tab-bar-tooltip";
 import {
   DOUBLE_TAP_MAX_INTERVAL,
   GLOW_ABSORB_DURATION,
@@ -36,6 +37,7 @@ import {
   TAB_BAR_HORIZONTAL_MARGIN,
   TAB_BAR_RADIUS,
   TAB_ICON_CONFIG,
+  TOOLTIP_VISIBLE_DURATION,
 } from "./tab-bar.constants";
 import type { TabBarProps, TabLayout } from "./tab-bar.types";
 
@@ -51,6 +53,26 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
   const scrollToTop = useScrollToTop();
   // Timestamp of the last press per tab index, for double-tap detection.
   const lastPressAt = useRef<Record<number, number>>({});
+
+  // Which tab's label bubble is currently showing (from a long-press),
+  // or null when none is. Auto-dismisses itself after a fixed delay so
+  // it never needs an explicit "release" gesture to go away.
+  const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
+  const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+    };
+  }, []);
+
+  const showTooltip = useCallback((index: number) => {
+    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+    setTooltipIndex(index);
+    tooltipTimeout.current = setTimeout(() => {
+      setTooltipIndex(null);
+    }, TOOLTIP_VISIBLE_DURATION);
+  }, []);
 
   const indicatorX = useSharedValue(0);
   const indicatorScaleX = useSharedValue(1);
@@ -191,13 +213,17 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
         {
           left: TAB_BAR_HORIZONTAL_MARGIN + insets.left,
           right: TAB_BAR_HORIZONTAL_MARGIN + insets.right,
-          // Sits above the system nav bar / home indicator on every
-          // device, instead of a fixed guess that only worked on some.
-          bottom: insets.bottom + TAB_BAR_BOTTOM_MARGIN,
+          // Docked flush against the bottom edge (like most apps'
+          // standard bottom bar) instead of floating above it — the
+          // safe-area inset is absorbed as padding *inside* the bar
+          // (see `bar` style) so its background still reaches the true
+          // edge while the icons themselves stay clear of the home
+          // indicator / nav bar.
+          bottom: TAB_BAR_BOTTOM_MARGIN,
         },
       ]}
     >
-      <View style={styles.bar}>
+      <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
         <View style={styles.glowClip} pointerEvents="none">
           {isReadyForAnimation ? (
             <Animated.View style={[styles.glow, glowStyle]}>
@@ -309,6 +335,8 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
           };
 
           const onLongPress = () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            showTooltip(index);
             navigation.emit({ type: "tabLongPress", target: route.key });
           };
 
@@ -328,6 +356,17 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
             />
           );
         })}
+
+        {tooltipIndex !== null && layouts[tooltipIndex] ? (
+          <TabBarTooltip
+            label={
+              TAB_ICON_CONFIG.find(
+                (c) => c.routeName === state.routes[tooltipIndex]?.name,
+              )?.accessibilityLabel ?? ""
+            }
+            centerX={layouts[tooltipIndex].x + layouts[tooltipIndex].width / 2}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -341,19 +380,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    height: TAB_BAR_HEIGHT,
+    // No fixed height: the row's own content (TAB_BAR_HEIGHT-tall
+    // buttons) plus the safe-area paddingBottom applied inline determine
+    // it, so the bar's total height adapts per device instead of a
+    // fixed guess.
     width: "100%",
     borderRadius: TAB_BAR_RADIUS,
     backgroundColor: colors.tabBarBackground,
-    borderWidth: StyleSheet.hairlineWidth,
+    // A docked, edge-to-edge bar only needs a top separator — side/
+    // bottom hairlines would sit exactly on the screen's own edge and
+    // do nothing.
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: colors.tabBarBorder,
     // Intentionally NOT overflow:hidden here — that would also clip the
-    // shadow below. Clipping is scoped to glowClip instead.
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
+    // glow reveal below. Clipping is scoped to glowClip instead. (No
+    // floating shadow anymore — a bar flush against the screen edge
+    // doesn't cast one.)
   },
   // Matches the bar's exact bounds/shape, clipping the glow to the pill —
   // contained "stage light" instead of spilling out above the bar.

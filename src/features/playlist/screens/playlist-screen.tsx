@@ -34,6 +34,7 @@ interface PlaylistScreenProps {
 function toPlayerTrack(song: PlaylistSong) {
   return {
     id: song.id,
+    source: song.source,
     title: song.title,
     artists: song.artists,
     artworkUrl: song.artwork.medium ?? song.artwork.large ?? song.artwork.small,
@@ -79,7 +80,7 @@ export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
       ) : isError || !data ? (
         <View style={styles.centered}>
           <Text style={[typography.body, { color: colors.danger }]}>
-            Yeh playlist load nahi ho paayi.
+            This playlist couldn't be loaded.
           </Text>
         </View>
       ) : (
@@ -126,7 +127,7 @@ export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
                 </Pressable>
               ) : (
                 <Text style={[typography.caption, styles.emptyNote]}>
-                  Iss playlist mein abhi koi song nahi mila.
+                  No songs found in this playlist yet.
                 </Text>
               )}
             </View>

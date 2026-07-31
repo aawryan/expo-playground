@@ -6,6 +6,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Party",
     tagline: "Bollywood dance floor",
     query: "Bollywood Party Dance Hits",
+    playlistQuery: "Bollywood Party Hits",
     icon: "flame",
   },
   {
@@ -13,6 +14,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Chill",
     tagline: "Lo-fi & slow down",
     query: "Lofi Chill Hindi English",
+    playlistQuery: "Lofi Chill",
     icon: "cafe",
   },
   {
@@ -20,6 +22,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Workout",
     tagline: "High-energy gym mix",
     query: "Workout Gym Motivation Hits",
+    playlistQuery: "Workout",
     icon: "barbell",
   },
   {
@@ -27,6 +30,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Romance",
     tagline: "Love songs, Hindi & English",
     query: "Romantic Love Songs Hindi",
+    playlistQuery: "Romantic Hits Hindi",
     icon: "heart",
   },
   {
@@ -34,6 +38,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Heartbreak",
     tagline: "For the sad hours",
     query: "Sad Songs Heartbreak Hindi",
+    playlistQuery: "Heartbreak Hits Hindi",
     icon: "rainy",
   },
   {
@@ -41,6 +46,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Hip-Hop",
     tagline: "Rap, Indian & Western",
     query: "Hip Hop Rap Hits English Hindi",
+    playlistQuery: "Hip Hop Hits",
     icon: "mic",
   },
   {
@@ -48,6 +54,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Devotional",
     tagline: "Bhajans & peace",
     query: "Devotional Bhajan Hindi",
+    playlistQuery: "Bhakti Hits",
     icon: "flower",
   },
   {
@@ -55,6 +62,7 @@ export const EXPLORE_GENRES: ExploreGenre[] = [
     label: "Retro",
     tagline: "Old is gold",
     query: "Old Classic Bollywood Retro",
+    playlistQuery: "90s Bollywood Hits",
     icon: "disc",
   },
 ];

@@ -12,10 +12,25 @@ import { moderateScale } from "@/lib/responsive";
 // lost on the other. moderateScale (not the linear scale) is used so the
 // bar doesn't balloon on wide screens.
 export const TAB_BAR_HEIGHT = moderateScale(64);
-export const TAB_BAR_HORIZONTAL_MARGIN = moderateScale(20);
-/** Extra gap kept above the device's safe-area bottom inset (nav bar / home indicator). */
-export const TAB_BAR_BOTTOM_MARGIN = moderateScale(16);
-export const TAB_BAR_RADIUS = TAB_BAR_HEIGHT / 2;
+/**
+ * Docked, edge-to-edge bar (the standard "sits flush at the bottom"
+ * layout, same idea as Instagram/most apps) instead of a floating
+ * pill — so no side margins and no bottom gap above the safe area.
+ * Only the *position* changed here; the glow/indicator/animation
+ * styling below is untouched.
+ */
+export const TAB_BAR_HORIZONTAL_MARGIN = 0;
+export const TAB_BAR_BOTTOM_MARGIN = 0;
+export const TAB_BAR_RADIUS = 0;
+
+/** How long a long-press tooltip stays up before auto-dismissing. */
+export const TOOLTIP_VISIBLE_DURATION = 1400;
+/** Gap between the top of the tab bar and the tooltip bubble above it. */
+export const TOOLTIP_BOTTOM_GAP = moderateScale(10);
+/** Approximate bubble height, used to lift it fully clear of the bar's
+ * top edge via a negative `top` offset (robust regardless of the bar's
+ * own height, which now varies with the device's safe-area inset). */
+export const TOOLTIP_HEIGHT = moderateScale(34);
 /** Max gap between two presses on an already-active tab to count as a
  * double-tap (triggers scroll-to-top) rather than two separate taps. */
 export const DOUBLE_TAP_MAX_INTERVAL = 300;
