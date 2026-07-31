@@ -53,7 +53,18 @@ async function fetchMixed<T>(
 const trackDedupeKey = (track: HomeTrack) =>
   `${track.title.trim().toLowerCase()}::${track.artists.trim().toLowerCase()}`;
 
-const chartDedupeKey = (chart: HomeChart) => chart.title.trim().toLowerCase();
+// BUG FIX: charts used to dedupe by title too, same as tracks — but a
+// track titled "Kesariya" IS the same song regardless of provider, while
+// a *playlist* titled e.g. "Bollywood Party" on Gaana and a JioSaavn
+// playlist that independently happens to share that name are NOT the
+// same content — they're two different curated tracklists. Deduping by
+// title was silently dropping the real Gaana chart whenever a
+// same/similar-named JioSaavn result landed earlier in the interleaved
+// order, replacing it with an unrelated JioSaavn playlist under the
+// familiar title — which is exactly why a chart card's title matched
+// gaana.com but its songs didn't. No dedupe key here means both
+// providers' same-named charts can both show up as separate cards,
+// which is correct: they're genuinely different playlists.
 
 /** One query per language so a slow/failed language never blocks the other. */
 export function useTrendingByLanguage() {
@@ -95,8 +106,7 @@ export function useNewReleases() {
 export function useCharts() {
   return useQuery({
     queryKey: ["home", "charts"],
-    queryFn: () =>
-      fetchMixed<HomeChart>([fetchCharts, fetchJiosaavnCharts], chartDedupeKey),
+    queryFn: () => fetchMixed<HomeChart>([fetchCharts, fetchJiosaavnCharts]),
   });
 }
 

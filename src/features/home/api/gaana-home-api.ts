@@ -158,21 +158,26 @@ export async function fetchCharts(
   }));
 }
 
-// Playlist/chart/album detail — GaanaPy exposes both `/playlists/info`
-// and `/albums/info`, both keyed by `seokey` and both returning a
-// `tracks` list of the same track object used everywhere else in the
-// API. Top-charts entries are usually playlists, but GaanaPy's own
-// /charts implementation (unlike /newreleases) does NOT filter its
-// results by entity_type before returning them — confirmed by reading
-// its source (api/charts/charts.py: format_json_charts just formats
-// whatever /charts returns, with no AL/TR/etc check). So an occasional
-// chart card's seokey resolves as neither a playlist nor an album on
-// Gaana itself — not something wrong on our end for that specific card.
-// Firing both lookups in parallel (rather than the previous sequential
-// try/catch) means we're not needlessly waiting on the always-fails one
-// before trying the other. When both come back empty, we fall through
-// to a JioSaavn playlist search by (de-slugified) name below instead of
-// dead-ending on the error state — see `fetchJiosaavnPlaylistDetailByName`.
+// Playlist/chart detail — GaanaPy exposes `/playlists/info`, keyed by
+// `seokey`, returning a `tracks` list of the same track object used
+// everywhere else in the API.
+//
+// BUG FIX: this used to also fire `/albums/info` in parallel and fall
+// back to whichever came back with tracks — on the theory that an
+// occasional chart card's seokey might resolve as an album instead of a
+// playlist. That theory doesn't hold: GaanaPy's own `/charts` route is
+// documented as "charts are just playlists" (app.py:
+// `summary="Retrieve the current top charts (charts are just
+// playlists)"`) — every chart seokey IS a playlist seokey, never an
+// album's. Calling `/albums/info` with a playlist's seokey doesn't
+// reliably 404; it can come back with *some* unrelated album's data
+// instead (Gaana's album lookup doesn't require an exact seokey match),
+// which is exactly why a Top Charts card's title matched gaana.com but
+// its songs didn't — the album fallback was winning whenever the real
+// playlist call was merely slow or the ternary's ordering favored it.
+// Only `/playlists/info` is called now; if that genuinely fails, we
+// fall through to the JioSaavn name-search fallback below instead of a
+// second guess at Gaana's own API.
 interface GaanaDetailResponse {
   title: string;
   subtitle?: string;
@@ -183,23 +188,18 @@ interface GaanaDetailResponse {
 export async function fetchGaanaPlaylistDetail(
   seokey: string,
 ): Promise<PlaylistDetail> {
-  const [playlistResult, albumResult] = await Promise.allSettled([
-    gaanaClient.get<GaanaDetailResponse>("/playlists/info", {
-      params: { seokey },
-    }),
-    gaanaClient.get<GaanaDetailResponse>("/albums/info", {
-      params: { seokey },
-    }),
-  ]);
-
-  const data =
-    playlistResult.status === "fulfilled" &&
-    playlistResult.value.data?.tracks?.length
-      ? playlistResult.value.data
-      : albumResult.status === "fulfilled" &&
-          albumResult.value.data?.tracks?.length
-        ? albumResult.value.data
-        : undefined;
+  let data: GaanaDetailResponse | undefined;
+  try {
+    const response = await gaanaClient.get<GaanaDetailResponse>(
+      "/playlists/info",
+      { params: { seokey } },
+    );
+    if (response.data?.tracks?.length) {
+      data = response.data;
+    }
+  } catch {
+    // fall through to the JioSaavn fallback below
+  }
 
   if (data) {
     return {
@@ -212,7 +212,7 @@ export async function fetchGaanaPlaylistDetail(
     };
   }
 
-  // Neither Gaana lookup resolved (see the comment above) — rather than
+  // The Gaana playlist lookup failed or came back empty — rather than
   // dead-ending on the error state, try the same content by name on
   // JioSaavn instead. seokeys are slugified titles (e.g.
   // "gaana-dj-gaana-international-top-50" → "gaana dj gaana
@@ -223,5 +223,5 @@ export async function fetchGaanaPlaylistDetail(
   );
   if (fallback) return fallback;
 
-  throw new Error("Gaana playlist/album detail returned no data.");
+  throw new Error("Gaana playlist detail returned no data.");
 }
