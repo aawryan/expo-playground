@@ -27,10 +27,6 @@ export const TAB_BAR_RADIUS = 0;
 export const TOOLTIP_VISIBLE_DURATION = 1400;
 /** Gap between the top of the tab bar and the tooltip bubble above it. */
 export const TOOLTIP_BOTTOM_GAP = moderateScale(10);
-/** Approximate bubble height, used to lift it fully clear of the bar's
- * top edge via a negative `top` offset (robust regardless of the bar's
- * own height, which now varies with the device's safe-area inset). */
-export const TOOLTIP_HEIGHT = moderateScale(34);
 /** Max gap between two presses on an already-active tab to count as a
  * double-tap (triggers scroll-to-top) rather than two separate taps. */
 export const DOUBLE_TAP_MAX_INTERVAL = 300;

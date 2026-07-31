@@ -18,6 +18,7 @@ import type { ExploreGenre } from "../types/explore-content";
 function toPlayerTrack(track: HomeTrack) {
   return {
     id: track.id,
+    source: track.source,
     title: track.title,
     artists: track.artists,
     artworkUrl:

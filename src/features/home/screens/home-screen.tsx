@@ -31,6 +31,7 @@ const TRENDING_LANGUAGES: readonly HomeLanguage[] = ["Hindi", "English"];
 function toPlayerTrack(track: HomeTrack) {
   return {
     id: track.id,
+    source: track.source,
     title: track.title,
     artists: track.artists,
     artworkUrl:

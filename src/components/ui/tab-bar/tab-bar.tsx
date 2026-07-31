@@ -365,6 +365,7 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
               )?.accessibilityLabel ?? ""
             }
             centerX={layouts[tooltipIndex].x + layouts[tooltipIndex].width / 2}
+            insets={insets}
           />
         ) : null}
       </View>

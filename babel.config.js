@@ -4,7 +4,7 @@ module.exports = function (api) {
     presets: ["babel-preset-expo"],
     plugins: [
       // ... koi aur plugin ho to upar
-      "react-native-reanimated/plugin", // 👈 hamesha LAST hona chahiye
+      "react-native-worklets/plugin", // 👈 hamesha LAST hona chahiye
     ],
   };
 };
