@@ -16,12 +16,10 @@ export function RewindEmptyState() {
           color={colors.textTertiary}
         />
       </View>
-      <Text style={[typography.title, styles.title]}>
-        Abhi kuch bhi track nahi hua
-      </Text>
+      <Text style={[typography.title, styles.title]}>Nothing played yet</Text>
       <Text style={[typography.body, styles.subtitle]}>
-        Kuch gaane suno — inka calendar, streak aur milestones yahin ban ne
-        lagenge.
+        Play a few songs — your calendar, streaks, and milestones will start
+        showing up here.
       </Text>
     </View>
   );

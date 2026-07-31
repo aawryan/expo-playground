@@ -25,9 +25,7 @@ export function StreakCard({ streak, weekendStreak }: StreakCardProps) {
         </View>
         <View style={styles.mainText}>
           <Text style={typography.h1}>{streak.current}</Text>
-          <Text style={[typography.caption, styles.label]}>
-            {streak.current === 1 ? "din ka streak" : "din ka streak"}
-          </Text>
+          <Text style={[typography.caption, styles.label]}>day streak</Text>
         </View>
 
         <View style={styles.divider} />
@@ -45,7 +43,8 @@ export function StreakCard({ streak, weekendStreak }: StreakCardProps) {
 
       {!streak.activeToday && streak.current > 0 ? (
         <Text style={[typography.caption, styles.nudge]}>
-          Aaj kuch suno — streak abhi zinda hai, lekin din khatam hone tak hi.
+          Play something today — your streak is still alive, but only until the
+          day ends.
         </Text>
       ) : null}
     </View>

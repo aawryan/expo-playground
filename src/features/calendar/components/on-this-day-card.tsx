@@ -1,6 +1,6 @@
-import { Image } from "expo-image";
-import { format } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
+import { format } from "date-fns";
+import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { moderateScale } from "@/lib/responsive";
@@ -15,11 +15,11 @@ interface OnThisDayCardProps {
 }
 
 function monthsAgoLabel(monthsAgo: number): string {
-  if (monthsAgo < 1) return "Kal";
-  if (monthsAgo === 1) return "1 mahine pehle";
-  if (monthsAgo < 12) return `${monthsAgo} mahine pehle`;
+  if (monthsAgo < 1) return "Yesterday";
+  if (monthsAgo === 1) return "1 month ago";
+  if (monthsAgo < 12) return `${monthsAgo} months ago`;
   const years = Math.round(monthsAgo / 12);
-  return years === 1 ? "1 saal pehle" : `${years} saal pehle`;
+  return years === 1 ? "1 year ago" : `${years} years ago`;
 }
 
 export function OnThisDayCard({ memory, onPress }: OnThisDayCardProps) {
@@ -39,10 +39,11 @@ export function OnThisDayCard({ memory, onPress }: OnThisDayCardProps) {
           size={moderateScale(16)}
           color={colors.accent}
         />
-        <Text style={[typography.caption, styles.eyebrow]}>
-          {monthsAgoLabel(memory.monthsAgo)} aaj — {format(memory.date, "d MMM")}
-        </Text>
+        <Text style={[typography.caption, styles.eyebrow]}>On This Day</Text>
       </View>
+      <Text style={[typography.caption, styles.relativeDate]}>
+        {monthsAgoLabel(memory.monthsAgo)} · {format(memory.date, "d MMM")}
+      </Text>
 
       <View style={styles.artworkStack}>
         {preview.map((entry, index) => {
@@ -109,6 +110,10 @@ const styles = StyleSheet.create({
     color: colors.accent,
     textTransform: "uppercase",
     letterSpacing: 0.4,
+  },
+  relativeDate: {
+    color: colors.textTertiary,
+    marginBottom: spacing.xs,
   },
   artworkStack: {
     flexDirection: "row",

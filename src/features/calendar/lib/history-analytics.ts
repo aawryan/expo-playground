@@ -158,7 +158,9 @@ export function computeMonthlyRecap(
     isSameMonth(entry.playedAt, reference),
   );
 
-  const dayKeysInMonth = new Set(inMonth.map((entry) => dayKey(entry.playedAt)));
+  const dayKeysInMonth = new Set(
+    inMonth.map((entry) => dayKey(entry.playedAt)),
+  );
 
   const artistCounts = new Map<string, number>();
   for (const entry of inMonth) {

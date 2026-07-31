@@ -7,6 +7,7 @@ import { useLibraryStore } from "@/features/library/store/library-store";
 import type { HistoryEntry } from "@/features/library/types/library-content";
 import { usePlayerStore } from "@/lib/audio/player-store";
 import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
+import { useResponsive } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
@@ -38,6 +39,9 @@ export function CalendarScreen() {
   const setMood = useMoodStore((state) => state.setMood);
   const clearMood = useMoodStore((state) => state.clearMood);
   const playTrack = usePlayerStore((state) => state.playTrack);
+  // Reactive to rotation/foldables/split-screen, same as ChartsGrid — a
+  // one-off measurement wouldn't update if the window resizes later.
+  const { isTablet } = useResponsive();
 
   const [monthAnchor, setMonthAnchor] = useState(() => new Date());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
@@ -74,7 +78,7 @@ export function CalendarScreen() {
   );
 
   const selectedDayEntries: HistoryEntry[] = selectedDateKey
-    ? byDay.get(selectedDateKey)?.entries ?? []
+    ? (byDay.get(selectedDateKey)?.entries ?? [])
     : [];
 
   function openDay(key: string) {
@@ -105,41 +109,43 @@ export function CalendarScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={typography.h1}>Rewind</Text>
-          <Text style={[typography.body, styles.headerSubtitle]}>
-            Tumhara listening calendar, streaks aur memories.
-          </Text>
-        </View>
-
-        {!hasHistory ? (
-          <RewindEmptyState />
-        ) : (
-          <View style={styles.sections}>
-            <StreakCard streak={streak} weekendStreak={weekendStreak} />
-
-            {onThisDay ? (
-              <OnThisDayCard
-                memory={onThisDay}
-                onPress={() => openDay(dayKey(onThisDay.date.getTime()))}
-              />
-            ) : null}
-
-            <ListeningHeatmap
-              monthAnchor={monthAnchor}
-              days={heatmapDays}
-              moodByDay={moodByDay}
-              onSelectDay={openDay}
-              onPrevMonth={() => setMonthAnchor((d) => subMonths(d, 1))}
-              onNextMonth={() => setMonthAnchor((d) => addMonths(d, 1))}
-              canGoNext={!isSameMonth(monthAnchor, today)}
-            />
-
-            <MonthlyRecapCard recap={recap} />
-
-            <MilestoneTimeline milestones={milestones} />
+        <View style={[styles.content, isTablet && styles.contentTablet]}>
+          <View style={styles.header}>
+            <Text style={typography.h1}>Rewind</Text>
+            <Text style={[typography.body, styles.headerSubtitle]}>
+              Your listening calendar, streaks, and memories.
+            </Text>
           </View>
-        )}
+
+          {!hasHistory ? (
+            <RewindEmptyState />
+          ) : (
+            <View style={styles.sections}>
+              <StreakCard streak={streak} weekendStreak={weekendStreak} />
+
+              {onThisDay ? (
+                <OnThisDayCard
+                  memory={onThisDay}
+                  onPress={() => openDay(dayKey(onThisDay.date.getTime()))}
+                />
+              ) : null}
+
+              <ListeningHeatmap
+                monthAnchor={monthAnchor}
+                days={heatmapDays}
+                moodByDay={moodByDay}
+                onSelectDay={openDay}
+                onPrevMonth={() => setMonthAnchor((d) => subMonths(d, 1))}
+                onNextMonth={() => setMonthAnchor((d) => addMonths(d, 1))}
+                canGoNext={!isSameMonth(monthAnchor, today)}
+              />
+
+              <MonthlyRecapCard recap={recap} />
+
+              <MilestoneTimeline milestones={milestones} />
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       <DayDetailSheet
@@ -165,6 +171,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing.xxl * 4,
+  },
+  content: {
+    flex: 1,
+  },
+  // Every card below sets its own marginHorizontal for phone layouts;
+  // capping+centering the shared wrapper here (once) keeps them reading
+  // as one aligned column on a tablet instead of stretching edge to edge.
+  contentTablet: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
   },
   header: {
     paddingHorizontal: spacing.lg,

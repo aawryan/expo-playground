@@ -1,14 +1,21 @@
-import { Image } from "expo-image";
-import { format, parseISO } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { format, parseISO } from "date-fns";
+import { Image } from "expo-image";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { moderateScale } from "@/lib/responsive";
+import type { HistoryEntry } from "@/features/library/types/library-content";
+import { moderateScale, useResponsive } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
-import type { HistoryEntry } from "@/features/library/types/library-content";
 import { MOOD_OPTIONS, type MoodId } from "../types/mood";
 
 interface DayDetailSheetProps {
@@ -33,6 +40,7 @@ export function DayDetailSheet({
   onPlayTrack,
 }: DayDetailSheetProps) {
   const date = dateKey ? parseISO(dateKey) : null;
+  const { isTablet } = useResponsive();
 
   return (
     <Modal
@@ -43,7 +51,10 @@ export function DayDetailSheet({
     >
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+        <SafeAreaView
+          edges={["bottom"]}
+          style={[styles.sheet, isTablet && styles.sheetTablet]}
+        >
           <View style={styles.grabber} />
 
           <View style={styles.header}>
@@ -65,7 +76,7 @@ export function DayDetailSheet({
           </View>
 
           <Text style={[typography.caption, styles.moodEyebrow]}>
-            Iss din ka mood
+            Mood for this day
           </Text>
           <View style={styles.moodRow}>
             {MOOD_OPTIONS.map((mood) => {
@@ -90,13 +101,10 @@ export function DayDetailSheet({
             })}
           </View>
 
-          <ScrollView
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
             {entries.length === 0 ? (
               <Text style={[typography.body, styles.emptyText]}>
-                Iss din kuch nahi suna.
+                Nothing played this day.
               </Text>
             ) : (
               entries.map((entry) => {
@@ -120,10 +128,7 @@ export function DayDetailSheet({
                       <View style={[styles.artwork, styles.artworkFallback]} />
                     )}
                     <View style={styles.trackText}>
-                      <Text
-                        style={typography.subtitle}
-                        numberOfLines={1}
-                      >
+                      <Text style={typography.subtitle} numberOfLines={1}>
                         {entry.track.title}
                       </Text>
                       <Text
@@ -163,6 +168,17 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     maxHeight: "80%",
   },
+  // On a tablet, a bottom sheet stretching the full window width looks
+  // like a phone layout that just didn't adapt — cap it to a comfortable
+  // reading width and center it instead, still anchored to the bottom.
+  sheetTablet: {
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    marginBottom: spacing.lg,
+  },
   grabber: {
     alignSelf: "center",
     width: moderateScale(36),
@@ -188,9 +204,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
+  // flex + aspectRatio (not a fixed px width) so all 6 chips always sum
+  // to exactly the row's width — never overflows on a narrow phone,
+  // never stretches oddly wide on a tablet since the sheet itself is
+  // capped (see `sheet` style below).
   moodChip: {
-    width: moderateScale(40),
-    height: moderateScale(40),
+    flex: 1,
+    aspectRatio: 1,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
