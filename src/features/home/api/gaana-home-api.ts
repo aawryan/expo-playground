@@ -185,6 +185,20 @@ interface GaanaDetailResponse {
   tracks?: GaanaTrackResponse[];
 }
 
+/** Loose equality for titles across two providers/APIs — lowercases,
+ * strips everything but letters/digits, so "Hindi Top 50", "Hindi Top
+ * 50!", and "hindi-top-50" all normalize the same way. */
+function normalizeTitleForCompare(title: string): string {
+  return title.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function titlesRoughlyMatch(a: string, b: string): boolean {
+  const normA = normalizeTitleForCompare(a);
+  const normB = normalizeTitleForCompare(b);
+  if (!normA || !normB) return false;
+  return normA.includes(normB) || normB.includes(normA);
+}
+
 export async function fetchGaanaPlaylistDetail(
   seokey: string,
   knownTitle?: string,
@@ -195,8 +209,23 @@ export async function fetchGaanaPlaylistDetail(
       "/playlists/info",
       { params: { seokey } },
     );
-    if (response.data?.tracks?.length) {
-      data = response.data;
+    const candidate = response.data;
+    // BUG FIX: a non-empty `tracks` array was being treated as proof
+    // this was the right playlist. It isn't — GaanaPy's `/playlists/info`
+    // can come back with a completely different (but perfectly
+    // well-formed, non-empty) playlist's data for a given seokey. This
+    // is a real upstream data-integrity issue, not something fixable by
+    // changing our request. The one thing we CAN check from our side:
+    // we already know the chart's real title from `/charts` before this
+    // screen even opens (`knownTitle`) — if what came back doesn't
+    // reasonably match it, it's the wrong playlist, full stop, no matter
+    // how many tracks it has. Skip `knownTitle`-checking only when we
+    // genuinely don't have one to compare against.
+    if (
+      candidate?.tracks?.length &&
+      (!knownTitle || titlesRoughlyMatch(candidate.title, knownTitle))
+    ) {
+      data = candidate;
     }
   } catch {
     // fall through to the JioSaavn fallback below
