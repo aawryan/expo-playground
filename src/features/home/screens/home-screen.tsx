@@ -9,8 +9,7 @@ import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import {
-  ChartsGrid,
-  ChartsGridSkeleton,
+  ChartsRow,
   HomeHero,
   HomeSectionState,
   LanguagePillTabs,
@@ -115,7 +114,6 @@ export function HomeScreen() {
             renderContent={(tracks) => (
               <TrackRow
                 tracks={tracks}
-                variant="trending"
                 onTrackPress={(track) =>
                   playFromList(activeTrendingQuery?.data ?? [], track)
                 }
@@ -139,8 +137,7 @@ export function HomeScreen() {
             renderContent={(tracks) => (
               <TrackRow
                 tracks={tracks}
-                variant="new"
-                staggered
+                isNew
                 onTrackPress={(track) => playFromList(tracks, track)}
               />
             )}
@@ -155,9 +152,9 @@ export function HomeScreen() {
             data={chartsQuery.data}
             errorMessage="Charts load nahi ho paaye."
             onRetry={() => chartsQuery.refetch()}
-            renderSkeleton={() => <ChartsGridSkeleton />}
+            renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(charts) => (
-              <ChartsGrid charts={charts} onChartPress={openChart} />
+              <ChartsRow charts={charts} onChartPress={openChart} />
             )}
           />
         </View>
@@ -175,7 +172,6 @@ export function HomeScreen() {
               renderContent={(tracks) => (
                 <TrackRow
                   tracks={tracks}
-                  variant="new"
                   onTrackPress={(track) => playFromList(tracks, track)}
                 />
               )}
@@ -196,6 +192,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl * 4,
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
 });

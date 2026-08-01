@@ -41,7 +41,7 @@ export function RewindScreen() {
   const clearMood = useMoodStore((state) => state.clearMood);
   const playTrack = usePlayerStore((state) => state.playTrack);
   const playQueue = usePlayerStore((state) => state.playQueue);
-  // Reactive to rotation/foldables/split-screen, same as ChartsGrid — a
+  // Reactive to rotation/foldables/split-screen, same as ChartsRow — a
   // one-off measurement wouldn't update if the window resizes later.
   const { isTablet } = useResponsive();
 
@@ -84,7 +84,7 @@ export function RewindScreen() {
   );
 
   const selectedDayEntries: HistoryEntry[] = selectedDateKey
-    ? byDay.get(selectedDateKey)?.entries ?? []
+    ? (byDay.get(selectedDateKey)?.entries ?? [])
     : [];
 
   function openDay(key: string) {

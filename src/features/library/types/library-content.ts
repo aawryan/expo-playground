@@ -49,7 +49,7 @@ export interface HistoryEntry {
 }
 
 /** Adapts a LibraryTrack into the HomeTrack shape so the existing
- * TrackRow/TrackCard components can render it without modification —
+ * TrackRow/TrackTile components can render it without modification —
  * only the artwork field shape actually differs. */
 export function libraryTrackToHomeTrack(track: LibraryTrack): HomeTrack {
   return {

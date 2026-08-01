@@ -1,29 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { moderateScale, useResponsive } from "@/lib/responsive";
+import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
-
-const ROW_HEIGHT = moderateScale(168, 0.3) * 1.22 + moderateScale(48);
+import { MEDIA_TILE_WIDTH } from "./media-tile";
 
 export function TrackRowSkeleton() {
   return (
     <View style={styles.skeletonRow}>
-      {[0, 1, 2].map((key) => (
-        <View key={key} style={[styles.skeletonCard, { height: ROW_HEIGHT }]} />
-      ))}
-    </View>
-  );
-}
-
-export function ChartsGridSkeleton() {
-  const { gridColumns } = useResponsive();
-  return (
-    <View style={styles.skeletonGrid}>
-      {Array.from({ length: gridColumns * 2 }).map((_, index) => (
-        <View key={index} style={[styles.skeletonTile, { aspectRatio: 0.88 }]} />
+      {[0, 1, 2, 3].map((key) => (
+        <View key={key} style={styles.skeletonTile}>
+          <View style={styles.skeletonArtwork} />
+          <View style={styles.skeletonLine} />
+          <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+        </View>
       ))}
     </View>
   );
@@ -40,16 +32,27 @@ export function SectionErrorView({
 }: SectionErrorViewProps) {
   return (
     <View style={styles.errorContainer}>
-      <Ionicons name="cloud-offline-outline" size={moderateScale(22)} color={colors.textTertiary} />
+      <Ionicons
+        name="cloud-offline-outline"
+        size={moderateScale(22)}
+        color={colors.textTertiary}
+      />
       <Text style={[typography.body, styles.errorMessage]}>{message}</Text>
       {onRetry ? (
         <Pressable
           onPress={onRetry}
-          style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
+          style={({ pressed }) => [
+            styles.retryButton,
+            pressed && styles.retryButtonPressed,
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Retry"
         >
-          <Ionicons name="refresh" size={moderateScale(14)} color={colors.accent} />
+          <Ionicons
+            name="refresh"
+            size={moderateScale(14)}
+            color={colors.accent}
+          />
           <Text style={[typography.label, styles.retryLabel]}>Retry</Text>
         </Pressable>
       ) : null}
@@ -58,7 +61,7 @@ export function SectionErrorView({
 }
 
 export function SectionLoadingView() {
-  return <ChartsGridSkeleton />;
+  return <TrackRowSkeleton />;
 }
 
 const styles = StyleSheet.create({
@@ -67,22 +70,24 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  skeletonCard: {
-    width: moderateScale(168, 0.3),
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-  },
-  skeletonGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-  },
   skeletonTile: {
-    flexBasis: "47%",
-    flexGrow: 1,
-    borderRadius: radius.lg,
+    width: MEDIA_TILE_WIDTH,
+  },
+  skeletonArtwork: {
+    width: MEDIA_TILE_WIDTH,
+    height: MEDIA_TILE_WIDTH,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
+  },
+  skeletonLine: {
+    height: moderateScale(11),
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    marginTop: spacing.sm,
+  },
+  skeletonLineShort: {
+    width: "60%",
+    marginTop: spacing.xs,
   },
   errorContainer: {
     paddingHorizontal: spacing.lg,

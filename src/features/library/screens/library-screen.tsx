@@ -250,7 +250,6 @@ export function LibraryScreen() {
               {recentTracks.length > 0 ? (
                 <TrackRow
                   tracks={recentTracks}
-                  variant="new"
                   onTrackPress={(track) => playRecent(track.id)}
                 />
               ) : (
