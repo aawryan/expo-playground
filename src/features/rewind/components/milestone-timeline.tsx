@@ -9,12 +9,37 @@ import type { Milestone } from "../lib/history-analytics";
 
 interface MilestoneTimelineProps {
   milestones: Milestone[];
+  /** `history.length` — see the milestone caveat in history-analytics.ts
+   * for why this is "tracks in rotation," not a lifetime count. */
+  currentCount: number;
 }
 
-export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
+export function MilestoneTimeline({
+  milestones,
+  currentCount,
+}: MilestoneTimelineProps) {
+  const nextMilestone = milestones.find((m) => !m.achieved);
+  const progressRatio = nextMilestone
+    ? Math.min(1, currentCount / nextMilestone.threshold)
+    : 1;
+
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.eyebrow]}>Milestones</Text>
+      <View style={styles.header}>
+        <Text style={[typography.caption, styles.eyebrow]}>Milestones</Text>
+        <Text style={[typography.caption, styles.progressLabel]}>
+          {nextMilestone
+            ? `${currentCount}/${nextMilestone.threshold} tracks`
+            : "All unlocked"}
+        </Text>
+      </View>
+
+      <View style={styles.progressTrack}>
+        <View
+          style={[styles.progressFill, { width: `${progressRatio * 100}%` }]}
+        />
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -23,7 +48,10 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
         {milestones.map((milestone, index) => (
           <View key={milestone.id} style={styles.item}>
             <View
-              style={[styles.badge, milestone.achieved && styles.badgeAchieved]}
+              style={[
+                styles.badge,
+                milestone.achieved && styles.badgeAchieved,
+              ]}
             >
               {milestone.achieved ? (
                 <Ionicons
@@ -72,11 +100,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.surfaceBorder,
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
   eyebrow: {
     color: colors.textTertiary,
     textTransform: "uppercase",
     letterSpacing: 0.4,
+  },
+  progressLabel: {
+    color: colors.textTertiary,
+  },
+  progressTrack: {
+    height: moderateScale(4),
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    overflow: "hidden",
     marginBottom: spacing.md,
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
   },
   row: {
     alignItems: "center",

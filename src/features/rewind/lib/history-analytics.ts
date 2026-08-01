@@ -7,6 +7,7 @@ import {
   getDate,
   isSameMonth,
   isWeekend,
+  parseISO,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -14,6 +15,7 @@ import {
 } from "date-fns";
 
 import type { HistoryEntry } from "@/features/library/types/library-content";
+import type { MoodId } from "../types/mood";
 
 /**
  * IMPORTANT DATA-MODEL CAVEAT — read before adding new stats here.
@@ -158,9 +160,7 @@ export function computeMonthlyRecap(
     isSameMonth(entry.playedAt, reference),
   );
 
-  const dayKeysInMonth = new Set(
-    inMonth.map((entry) => dayKey(entry.playedAt)),
-  );
+  const dayKeysInMonth = new Set(inMonth.map((entry) => dayKey(entry.playedAt)));
 
   const artistCounts = new Map<string, number>();
   for (const entry of inMonth) {
@@ -285,4 +285,31 @@ export function buildMonthGrid(
       count: byDay.get(key)?.entries.length ?? 0,
     };
   });
+}
+
+export interface TopMood {
+  mood: MoodId;
+  count: number;
+}
+
+/** Most-tagged mood within the calendar month containing `reference`.
+ * Moods live in a separate, purely-user-entered store (mood-store.ts) —
+ * this stays independent of `history`/`byDay` on purpose, same reasoning
+ * as the module doc comment: don't conflate "what was played" with
+ * "how the user says they felt." */
+export function computeTopMood(
+  moodByDay: Record<string, MoodId>,
+  reference: Date = new Date(),
+): TopMood | null {
+  const counts = new Map<MoodId, number>();
+  for (const [key, mood] of Object.entries(moodByDay)) {
+    if (!isSameMonth(parseISO(key), reference)) continue;
+    counts.set(mood, (counts.get(mood) ?? 0) + 1);
+  }
+
+  let best: TopMood | null = null;
+  for (const [mood, count] of counts) {
+    if (!best || count > best.count) best = { mood, count };
+  }
+  return best;
 }

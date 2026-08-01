@@ -43,8 +43,8 @@ export function StreakCard({ streak, weekendStreak }: StreakCardProps) {
 
       {!streak.activeToday && streak.current > 0 ? (
         <Text style={[typography.caption, styles.nudge]}>
-          Play something today — your streak is still alive, but only until the
-          day ends.
+          Play something today — your streak is still alive, but only until
+          the day ends.
         </Text>
       ) : null}
     </View>

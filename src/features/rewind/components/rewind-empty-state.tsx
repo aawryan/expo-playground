@@ -16,10 +16,12 @@ export function RewindEmptyState() {
           color={colors.textTertiary}
         />
       </View>
-      <Text style={[typography.title, styles.title]}>Nothing played yet</Text>
+      <Text style={[typography.title, styles.title]}>
+        Nothing played yet
+      </Text>
       <Text style={[typography.body, styles.subtitle]}>
-        Play a few songs — your calendar, streaks, and milestones will start
-        showing up here.
+        Play a few songs — your Rewind starts filling in from here: streaks,
+        moods, and milestones.
       </Text>
     </View>
   );

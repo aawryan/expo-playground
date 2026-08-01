@@ -1,9 +1,10 @@
 import type { TabBarIconConfig } from "./tab-bar.types";
 
-import calendarAnimation from "@/assets/lottie/calendar.json";
 import exploreAnimation from "@/assets/lottie/explore.json";
+import globeAnimation from "@/assets/lottie/globe.json";
 import homeAnimation from "@/assets/lottie/home.json";
 import libraryAnimation from "@/assets/lottie/library.json";
+import rewindAnimation from "@/assets/lottie/rewind.json";
 import { moderateScale } from "@/lib/responsive";
 
 // Authored at a 375-wide reference and run through the shared responsive
@@ -24,7 +25,11 @@ export const TAB_BAR_BOTTOM_MARGIN = 0;
 export const TAB_BAR_RADIUS = 0;
 
 /** How long a long-press tooltip stays up before auto-dismissing. */
-export const TOOLTIP_VISIBLE_DURATION = 1400;
+/** Re-exported from the tooltip store, which is the source of truth now
+ * that the tooltip itself is rendered outside the tab bar (see
+ * tab-bar-tooltip.tsx's doc comment) — kept here too since most of this
+ * file's other consumers already import timing constants from this path. */
+export { TOOLTIP_VISIBLE_DURATION } from "@/lib/navigation/tab-bar-tooltip-store";
 /** Gap between the top of the tab bar and the tooltip bubble above it. */
 export const TOOLTIP_BOTTOM_GAP = moderateScale(10);
 /** Max gap between two presses on an already-active tab to count as a
@@ -115,17 +120,33 @@ export const TAB_ICON_CONFIG: TabBarIconConfig[] = [
     reverseDuration: 280,
   },
   {
+    routeName: "globe",
+    source: globeAnimation,
+    // globe.json top-level layer name: "globe"
+    colorKeypaths: ["globe"],
+    accessibilityLabel: "Globe",
+    // Same reasoning as "explore": the meridian's scaleX motion runs
+    // continuously across the whole authored range (it's built as a
+    // seamless 90-frame loop), so it needs real time to read as a spin
+    // rather than a flash.
+    forwardDuration: 480,
+    reverseDuration: 260,
+  },
+  {
+    routeName: "rewind",
+    source: rewindAnimation,
+    // rewind.json (renamed from calendar.json) top-level layer name is
+    // still "calendar" — that's baked into the Lottie file's own layer
+    // data, unrelated to the tab's product name, so the keypath has to
+    // keep matching it exactly regardless of what we call the tab.
+    colorKeypaths: ["calendar"],
+    accessibilityLabel: "Rewind",
+  },
+  {
     routeName: "library",
     source: libraryAnimation,
     // library.json (folder.json) top-level layer name: "Folder" (capital F)
     colorKeypaths: ["Folder"],
     accessibilityLabel: "Library",
-  },
-  {
-    routeName: "calendar",
-    source: calendarAnimation,
-    // calendar.json top-level layer name: "calendar"
-    colorKeypaths: ["calendar"],
-    accessibilityLabel: "Calendar",
   },
 ];

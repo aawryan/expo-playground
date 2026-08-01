@@ -19,8 +19,9 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="index" options={{ title: "Home" }} />
         <Tabs.Screen name="explore" options={{ title: "Explore" }} />
+        <Tabs.Screen name="globe" options={{ title: "Globe" }} />
+        <Tabs.Screen name="rewind" options={{ title: "Rewind" }} />
         <Tabs.Screen name="library" options={{ title: "Library" }} />
-        <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
       </Tabs>
     </ScrollToTopProvider>
   );

@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -14,11 +13,9 @@ import Animated, {
 import { useReduceMotionEnabled } from "@/lib/accessibility/use-reduce-motion";
 import { useScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
-import { TabBarButton } from "./tab-bar-button";
 import { TabBarGlow } from "./tab-bar-glow";
-import { TabBarTooltip } from "./tab-bar-tooltip";
+import { TabBarTab } from "./tab-bar-tab";
 import {
-  DOUBLE_TAP_MAX_INTERVAL,
   GLOW_ABSORB_DURATION,
   GLOW_FALL_DURATION,
   GLOW_HEIGHT,
@@ -37,7 +34,6 @@ import {
   TAB_BAR_HORIZONTAL_MARGIN,
   TAB_BAR_RADIUS,
   TAB_ICON_CONFIG,
-  TOOLTIP_VISIBLE_DURATION,
 } from "./tab-bar.constants";
 import type { TabBarProps, TabLayout } from "./tab-bar.types";
 
@@ -51,28 +47,6 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
   const [isReadyForAnimation, setIsReadyForAnimation] = useState(false);
   const reduceMotion = useReduceMotionEnabled();
   const scrollToTop = useScrollToTop();
-  // Timestamp of the last press per tab index, for double-tap detection.
-  const lastPressAt = useRef<Record<number, number>>({});
-
-  // Which tab's label bubble is currently showing (from a long-press),
-  // or null when none is. Auto-dismisses itself after a fixed delay so
-  // it never needs an explicit "release" gesture to go away.
-  const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
-  const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
-    };
-  }, []);
-
-  const showTooltip = useCallback((index: number) => {
-    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
-    setTooltipIndex(index);
-    tooltipTimeout.current = setTimeout(() => {
-      setTooltipIndex(null);
-    }, TOOLTIP_VISIBLE_DURATION);
-  }, []);
 
   const indicatorX = useSharedValue(0);
   const indicatorScaleX = useSharedValue(1);
@@ -178,32 +152,32 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
     ? activeLayout.x + activeLayout.width / 2 - glowWidthBottom / 2
     : 0;
 
-  const handleLayoutFor = useCallback(
-    (index: number) => (layout: TabLayout) => {
-      // On the very first layout pass (especially on Android), a flex
-      // child can briefly report {x: 0, width: 0} before the row has
-      // finished settling. If we stored that, the glow would snap into
-      // place at a bogus position on first mount, then only get a
-      // *second*, correct measurement once something else (like a tab
-      // press) forced another layout pass — which is exactly why the
-      // light looked "missing" until you started navigating. Ignoring
-      // zero-width reports means the effect waits for the real one.
-      if (layout.width === 0) return;
+  // Single stable callback shared by every tab (not a per-index curried
+  // one) — TabBarTab just tells us which index changed, so identity here
+  // never depends on anything that changes per-tab.
+  const handleLayoutChange = useCallback((index: number, layout: TabLayout) => {
+    // On the very first layout pass (especially on Android), a flex
+    // child can briefly report {x: 0, width: 0} before the row has
+    // finished settling. If we stored that, the glow would snap into
+    // place at a bogus position on first mount, then only get a
+    // *second*, correct measurement once something else (like a tab
+    // press) forced another layout pass — which is exactly why the
+    // light looked "missing" until you started navigating. Ignoring
+    // zero-width reports means the effect waits for the real one.
+    if (layout.width === 0) return;
 
-      setLayouts((prev) => {
-        const existing = prev[index];
-        if (
-          existing &&
-          existing.x === layout.x &&
-          existing.width === layout.width
-        ) {
-          return prev;
-        }
-        return { ...prev, [index]: layout };
-      });
-    },
-    [],
-  );
+    setLayouts((prev) => {
+      const existing = prev[index];
+      if (
+        existing &&
+        existing.x === layout.x &&
+        existing.width === layout.width
+      ) {
+        return prev;
+      }
+      return { ...prev, [index]: layout };
+    });
+  }, []);
 
   return (
     <View
@@ -300,74 +274,21 @@ export function TabBar({ state, navigation, insets }: TabBarProps) {
           );
           if (!config) return null;
 
-          const isFocused = state.index === index;
-
-          const onPress = () => {
-            // A light tick on every tab press — small, but its absence is
-            // exactly the kind of thing that makes a bar feel "flat".
-            Haptics.selectionAsync();
-
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused) {
-              lastPressAt.current[index] = Date.now();
-              if (!event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-              return;
-            }
-
-            // Tapping the tab you're already on doesn't navigate anywhere,
-            // so this is where a double-tap can mean something: scroll
-            // that screen back to the top.
-            const now = Date.now();
-            const lastPress = lastPressAt.current[index] ?? 0;
-            lastPressAt.current[index] = now;
-
-            if (now - lastPress < DOUBLE_TAP_MAX_INTERVAL) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              scrollToTop(route.name);
-            }
-          };
-
-          const onLongPress = () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            showTooltip(index);
-            navigation.emit({ type: "tabLongPress", target: route.key });
-          };
-
           return (
-            <TabBarButton
+            <TabBarTab
               key={route.key}
-              source={config.source}
-              colorKeypaths={config.colorKeypaths}
-              focused={isFocused}
-              accessibilityLabel={config.accessibilityLabel}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              onLayout={handleLayoutFor(index)}
+              route={route}
+              index={index}
+              isFocused={state.index === index}
+              config={config}
+              navigation={navigation}
+              scrollToTop={scrollToTop}
+              tabLayout={layouts[index]}
+              onLayoutChange={handleLayoutChange}
               style={styles.button}
-              forwardDuration={config.forwardDuration}
-              reverseDuration={config.reverseDuration}
             />
           );
         })}
-
-        {tooltipIndex !== null && layouts[tooltipIndex] ? (
-          <TabBarTooltip
-            label={
-              TAB_ICON_CONFIG.find(
-                (c) => c.routeName === state.routes[tooltipIndex]?.name,
-              )?.accessibilityLabel ?? ""
-            }
-            centerX={layouts[tooltipIndex].x + layouts[tooltipIndex].width / 2}
-            insets={insets}
-          />
-        ) : null}
       </View>
     </View>
   );

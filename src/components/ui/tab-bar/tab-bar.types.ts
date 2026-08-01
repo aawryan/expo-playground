@@ -9,7 +9,12 @@ export type TabBarProps =
     ? P
     : never;
 
-export type TabBarRouteName = "index" | "explore" | "library" | "calendar";
+export type TabBarRouteName =
+  | "index"
+  | "explore"
+  | "globe"
+  | "rewind"
+  | "library";
 
 export interface TabBarIconConfig {
   routeName: TabBarRouteName;

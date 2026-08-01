@@ -1,21 +1,15 @@
-import { Ionicons } from "@expo/vector-icons";
-import { format, parseISO } from "date-fns";
 import { Image } from "expo-image";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { format, parseISO } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import type { HistoryEntry } from "@/features/library/types/library-content";
 import { moderateScale, useResponsive } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
+import type { HistoryEntry } from "@/features/library/types/library-content";
 import { MOOD_OPTIONS, type MoodId } from "../types/mood";
 
 interface DayDetailSheetProps {
@@ -27,6 +21,7 @@ interface DayDetailSheetProps {
   onSelectMood: (mood: MoodId) => void;
   onClearMood: () => void;
   onPlayTrack: (entry: HistoryEntry) => void;
+  onPlayAll: (entries: HistoryEntry[]) => void;
 }
 
 export function DayDetailSheet({
@@ -38,9 +33,19 @@ export function DayDetailSheet({
   onSelectMood,
   onClearMood,
   onPlayTrack,
+  onPlayAll,
 }: DayDetailSheetProps) {
   const date = dateKey ? parseISO(dateKey) : null;
   const { isTablet } = useResponsive();
+
+  function handleSelectMood(mood: MoodId) {
+    Haptics.selectionAsync();
+    if (selectedMood === mood) {
+      onClearMood();
+    } else {
+      onSelectMood(mood);
+    }
+  }
 
   return (
     <Modal
@@ -84,9 +89,7 @@ export function DayDetailSheet({
               return (
                 <Pressable
                   key={mood.id}
-                  onPress={() =>
-                    active ? onClearMood() : onSelectMood(mood.id)
-                  }
+                  onPress={() => handleSelectMood(mood.id)}
                   style={({ pressed }) => [
                     styles.moodChip,
                     active && styles.moodChipActive,
@@ -94,6 +97,7 @@ export function DayDetailSheet({
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={mood.label}
+                  accessibilityState={{ selected: active }}
                 >
                   <Text style={styles.moodEmoji}>{mood.emoji}</Text>
                 </Pressable>
@@ -101,7 +105,39 @@ export function DayDetailSheet({
             })}
           </View>
 
-          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+          {entries.length > 0 ? (
+            <View style={styles.listHeader}>
+              <Text style={[typography.caption, styles.listHeaderLabel]}>
+                {entries.length === 1 ? "1 track" : `${entries.length} tracks`}
+              </Text>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onPlayAll(entries);
+                }}
+                style={({ pressed }) => [
+                  styles.playAllPill,
+                  pressed && styles.playAllPillPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Play all tracks from this day"
+              >
+                <Ionicons
+                  name="play"
+                  size={moderateScale(12)}
+                  color={colors.screenBackground}
+                />
+                <Text style={[typography.caption, styles.playAllLabel]}>
+                  Play all
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <ScrollView
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+          >
             {entries.length === 0 ? (
               <Text style={[typography.body, styles.emptyText]}>
                 Nothing played this day.
@@ -128,7 +164,10 @@ export function DayDetailSheet({
                       <View style={[styles.artwork, styles.artworkFallback]} />
                     )}
                     <View style={styles.trackText}>
-                      <Text style={typography.subtitle} numberOfLines={1}>
+                      <Text
+                        style={typography.subtitle}
+                        numberOfLines={1}
+                      >
                         {entry.track.title}
                       </Text>
                       <Text
@@ -227,6 +266,33 @@ const styles = StyleSheet.create({
   },
   moodEmoji: {
     fontSize: moderateScale(18),
+  },
+  listHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
+  listHeaderLabel: {
+    color: colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  playAllPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs / 2,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 1.5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+  },
+  playAllPillPressed: {
+    opacity: 0.8,
+  },
+  playAllLabel: {
+    color: colors.screenBackground,
+    fontWeight: "600",
   },
   list: {
     marginBottom: spacing.lg,

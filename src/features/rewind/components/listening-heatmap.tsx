@@ -1,5 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { moderateScale } from "@/lib/responsive";
@@ -38,6 +39,7 @@ interface ListeningHeatmapProps {
   onSelectDay: (dateKey: string) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onJumpToday: () => void;
   canGoNext: boolean;
 }
 
@@ -48,6 +50,7 @@ export function ListeningHeatmap({
   onSelectDay,
   onPrevMonth,
   onNextMonth,
+  onJumpToday,
   canGoNext,
 }: ListeningHeatmapProps) {
   const weeks: HeatmapDay[][] = [];
@@ -55,11 +58,27 @@ export function ListeningHeatmap({
     weeks.push(days.slice(i, i + 7));
   }
 
+  function handlePrev() {
+    Haptics.selectionAsync();
+    onPrevMonth();
+  }
+
+  function handleNext() {
+    if (!canGoNext) return;
+    Haptics.selectionAsync();
+    onNextMonth();
+  }
+
+  function handleJumpToday() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onJumpToday();
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.monthHeader}>
         <Pressable
-          onPress={onPrevMonth}
+          onPress={handlePrev}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel="Previous month"
@@ -72,7 +91,7 @@ export function ListeningHeatmap({
         </Pressable>
         <Text style={typography.title}>{format(monthAnchor, "MMMM yyyy")}</Text>
         <Pressable
-          onPress={onNextMonth}
+          onPress={handleNext}
           hitSlop={8}
           disabled={!canGoNext}
           accessibilityRole="button"
@@ -85,6 +104,27 @@ export function ListeningHeatmap({
           />
         </Pressable>
       </View>
+
+      {canGoNext ? (
+        <Pressable
+          onPress={handleJumpToday}
+          style={({ pressed }) => [
+            styles.todayPill,
+            pressed && styles.todayPillPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Jump to current month"
+        >
+          <Ionicons
+            name="today-outline"
+            size={moderateScale(13)}
+            color={colors.textSecondary}
+          />
+          <Text style={[typography.caption, styles.todayPillLabel]}>
+            Today
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.weekdayRow}>
         {WEEKDAY_LABELS.map((label, index) => (
@@ -106,7 +146,10 @@ export function ListeningHeatmap({
               return (
                 <Pressable
                   key={day.dateKey}
-                  onPress={() => onSelectDay(day.dateKey)}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onSelectDay(day.dateKey);
+                  }}
                   style={({ pressed }) => [
                     styles.cell,
                     { backgroundColor: TIER_BACKGROUND[tier] },
@@ -166,7 +209,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
+  todayPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    gap: spacing.xs / 2,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 1.5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
     marginBottom: spacing.md,
+  },
+  todayPillPressed: {
+    opacity: 0.7,
+  },
+  todayPillLabel: {
+    color: colors.textSecondary,
   },
   weekdayRow: {
     flexDirection: "row",

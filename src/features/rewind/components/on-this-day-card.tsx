@@ -1,6 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
-import { format } from "date-fns";
 import { Image } from "expo-image";
+import { format } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { moderateScale } from "@/lib/responsive";

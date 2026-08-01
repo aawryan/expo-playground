@@ -26,19 +26,21 @@ import {
   computeMonthlyRecap,
   computeOnThisDay,
   computeStreak,
+  computeTopMood,
   computeWeekendStreak,
   dayKey,
   groupHistoryByDay,
 } from "../lib/history-analytics";
 import { useMoodStore } from "../store/mood-store";
 
-export function CalendarScreen() {
+export function RewindScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const history = useLibraryStore((state) => state.history);
   const moodByDay = useMoodStore((state) => state.moodByDay);
   const setMood = useMoodStore((state) => state.setMood);
   const clearMood = useMoodStore((state) => state.clearMood);
   const playTrack = usePlayerStore((state) => state.playTrack);
+  const playQueue = usePlayerStore((state) => state.playQueue);
   // Reactive to rotation/foldables/split-screen, same as ChartsGrid — a
   // one-off measurement wouldn't update if the window resizes later.
   const { isTablet } = useResponsive();
@@ -47,7 +49,7 @@ export function CalendarScreen() {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 
   useRegisterScrollToTop(
-    "calendar",
+    "rewind",
     useCallback(() => {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     }, []),
@@ -72,13 +74,17 @@ export function CalendarScreen() {
     [byDay, today],
   );
   const milestones = useMemo(() => computeMilestones(history), [history]);
+  const topMood = useMemo(
+    () => computeTopMood(moodByDay, today),
+    [moodByDay, today],
+  );
   const heatmapDays = useMemo(
     () => buildMonthGrid(byDay, monthAnchor, today),
     [byDay, monthAnchor, today],
   );
 
   const selectedDayEntries: HistoryEntry[] = selectedDateKey
-    ? (byDay.get(selectedDateKey)?.entries ?? [])
+    ? byDay.get(selectedDateKey)?.entries ?? []
     : [];
 
   function openDay(key: string) {
@@ -100,6 +106,19 @@ export function CalendarScreen() {
     });
   }
 
+  function handlePlayAll(dayEntries: HistoryEntry[]) {
+    if (dayEntries.length === 0) return;
+    const queue = dayEntries.map((entry) => ({
+      id: entry.track.id,
+      source: entry.track.source,
+      title: entry.track.title,
+      artists: entry.track.artists,
+      artworkUrl: entry.track.artworkUrl,
+      streamUrl: entry.track.streamUrl,
+    }));
+    playQueue(queue, 0);
+  }
+
   const hasHistory = history.length > 0;
 
   return (
@@ -113,7 +132,7 @@ export function CalendarScreen() {
           <View style={styles.header}>
             <Text style={typography.h1}>Rewind</Text>
             <Text style={[typography.body, styles.headerSubtitle]}>
-              Your listening calendar, streaks, and memories.
+              Your listening history, streaks, and memories.
             </Text>
           </View>
 
@@ -137,12 +156,16 @@ export function CalendarScreen() {
                 onSelectDay={openDay}
                 onPrevMonth={() => setMonthAnchor((d) => subMonths(d, 1))}
                 onNextMonth={() => setMonthAnchor((d) => addMonths(d, 1))}
+                onJumpToday={() => setMonthAnchor(today)}
                 canGoNext={!isSameMonth(monthAnchor, today)}
               />
 
-              <MonthlyRecapCard recap={recap} />
+              <MonthlyRecapCard recap={recap} topMood={topMood} />
 
-              <MilestoneTimeline milestones={milestones} />
+              <MilestoneTimeline
+                milestones={milestones}
+                currentCount={history.length}
+              />
             </View>
           )}
         </View>
@@ -159,6 +182,7 @@ export function CalendarScreen() {
         }
         onClearMood={() => selectedDateKey && clearMood(selectedDateKey)}
         onPlayTrack={handlePlayTrack}
+        onPlayAll={handlePlayAll}
       />
     </SafeAreaView>
   );

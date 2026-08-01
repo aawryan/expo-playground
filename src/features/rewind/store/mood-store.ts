@@ -34,7 +34,7 @@ export const useMoodStore = create<MoodState>()(
       },
     }),
     {
-      name: "whispr-calendar-moods",
+      name: "whispr-rewind-moods",
       storage: createJSONStorage(() => AsyncStorage),
       // Independent from the library store's own version counter — this
       // is a separate persisted slice with its own shape to migrate.
