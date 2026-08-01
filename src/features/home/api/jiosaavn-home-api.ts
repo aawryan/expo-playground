@@ -1,5 +1,5 @@
 import { jiosaavnClient } from "@/lib/api/clients";
-import { interleaveEqually } from "@/lib/utils/mix";
+import { dedupeByKey, interleaveEqually } from "@/lib/utils/mix";
 import type {
   HomeArtwork,
   HomeChart,
@@ -24,11 +24,11 @@ interface JiosaavnDownloadLink {
   url: string;
 }
 
-interface JiosaavnSongResponse {
+export interface JiosaavnSongResponse {
   id: string;
   name: string;
   language?: string;
-  artists?: { primary?: { name: string }[] };
+  artists?: { primary?: { id?: string; name: string }[] };
   primaryArtists?: string;
   image?: JiosaavnImage[];
   downloadUrl?: JiosaavnDownloadLink[];
@@ -85,6 +85,20 @@ function artistNames(song: JiosaavnSongResponse): string {
   );
 }
 
+/** {id, name} pairs for a song's primary artists — the only side (of
+ * Gaana/JioSaavn) with a real artist id, so this is what the Followed
+ * Artists feature reads from instead of the display-only artistNames()
+ * string above. Artists without an id (the API doesn't guarantee one on
+ * every entry) are dropped since there'd be nothing stable to follow
+ * them by. */
+export function primaryArtistRefs(
+  song: JiosaavnSongResponse,
+): { id: string; name: string }[] {
+  return (song.artists?.primary ?? []).filter(
+    (artist): artist is { id: string; name: string } => Boolean(artist.id),
+  );
+}
+
 function normalizeSong(raw: JiosaavnSongResponse): HomeTrack {
   return {
     id: raw.id,
@@ -133,16 +147,24 @@ const NEW_RELEASES_QUERIES: Record<HomeLanguage, [string, string]> = {
   English: ["New English Songs", "Latest Pop Releases"],
 };
 
-/** Runs two same-provider query variants in parallel and interleaves them — real variety instead of one static query's fixed top-N. */
+/** Runs two same-provider query variants in parallel and interleaves them
+ * — real variety instead of one static query's fixed top-N. The two
+ * curated queries (e.g. "New Bollywood Songs" / "Latest Hindi Music")
+ * routinely surface the same popular song under both, so this also
+ * dedupes by id before returning — same-provider ids are a reliable
+ * unique key here (unlike across Gaana/JioSaavn). Left undeduped, the
+ * repeated id broke FlashList's keyExtractor and showed up as blank
+ * cells in the row, not just a visibly repeated song. */
 async function fetchTwoQueriesMixed(
   queries: [string, string],
   fetchOne: (query: string) => Promise<HomeTrack[]>,
 ): Promise<HomeTrack[]> {
   const [a, b] = await Promise.allSettled(queries.map(fetchOne));
-  return interleaveEqually(
+  const mixed = interleaveEqually(
     a.status === "fulfilled" ? a.value : [],
     b.status === "fulfilled" ? b.value : [],
   );
+  return dedupeByKey(mixed, (track) => track.id);
 }
 
 export async function fetchJiosaavnTrending(
@@ -196,10 +218,11 @@ export async function fetchJiosaavnCharts(): Promise<HomeChart[]> {
   };
 
   const [a, b] = await Promise.allSettled(CHARTS_QUERIES.map(fetchOne));
-  return interleaveEqually(
+  const mixed = interleaveEqually(
     a.status === "fulfilled" ? a.value : [],
     b.status === "fulfilled" ? b.value : [],
   );
+  return dedupeByKey(mixed, (chart) => chart.id);
 }
 
 /**

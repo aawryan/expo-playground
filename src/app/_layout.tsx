@@ -31,6 +31,10 @@ export default function RootLayout() {
               name="playlist/[source]/[id]"
               options={{ presentation: "card" }}
             />
+            <Stack.Screen
+              name="library/liked-songs"
+              options={{ presentation: "card" }}
+            />
           </Stack>
           {/* Mounted above the Stack so playback controls stay visible whether the
               user is on a tab screen or inside a playlist detail screen. */}

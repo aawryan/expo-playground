@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { PlaylistSong } from "@/features/home/types/home-content";
+import { useLibraryStore } from "@/features/library/store/library-store";
 import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
@@ -35,6 +36,10 @@ export function SongRow({
   const artworkUri =
     song.artwork.small ?? song.artwork.medium ?? song.artwork.large;
   const duration = formatDuration(song.durationSeconds);
+  const isLiked = useLibraryStore((state) =>
+    state.isSongLiked({ id: song.id, source: song.source }),
+  );
+  const toggleLikeSong = useLibraryStore((state) => state.toggleLikeSong);
 
   return (
     <Pressable
@@ -83,6 +88,29 @@ export function SongRow({
       {duration ? (
         <Text style={[typography.caption, styles.duration]}>{duration}</Text>
       ) : null}
+
+      <Pressable
+        onPress={() =>
+          toggleLikeSong({
+            id: song.id,
+            source: song.source,
+            title: song.title,
+            artists: song.artists,
+            artworkUrl: artworkUri,
+            streamUrl: song.streamUrl,
+          })
+        }
+        hitSlop={12}
+        style={styles.likeButton}
+        accessibilityRole="button"
+        accessibilityLabel={isLiked ? "Unlike" : "Like"}
+      >
+        <Ionicons
+          name={isLiked ? "heart" : "heart-outline"}
+          size={moderateScale(18)}
+          color={isLiked ? colors.accent : colors.textSecondary}
+        />
+      </Pressable>
     </Pressable>
   );
 }
@@ -132,4 +160,7 @@ const styles = StyleSheet.create({
   },
   artists: {},
   duration: {},
+  likeButton: {
+    paddingLeft: spacing.xs,
+  },
 });

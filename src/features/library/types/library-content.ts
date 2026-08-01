@@ -1,4 +1,8 @@
-import type { ContentSource } from "@/features/home/types/home-content";
+import type {
+  ContentSource,
+  HomeTrack,
+  PlaylistSong,
+} from "@/features/home/types/home-content";
 
 /**
  * Minimal, self-contained snapshot of a track — enough to re-render a
@@ -42,4 +46,30 @@ export interface FollowedArtist {
 export interface HistoryEntry {
   track: LibraryTrack;
   playedAt: number;
+}
+
+/** Adapts a LibraryTrack into the HomeTrack shape so the existing
+ * TrackRow/TrackCard components can render it without modification —
+ * only the artwork field shape actually differs. */
+export function libraryTrackToHomeTrack(track: LibraryTrack): HomeTrack {
+  return {
+    id: track.id,
+    source: track.source,
+    title: track.title,
+    artists: track.artists,
+    artwork: { small: track.artworkUrl },
+    streamUrl: track.streamUrl,
+  };
+}
+
+/** Same idea as libraryTrackToHomeTrack, but for SongRow. */
+export function libraryTrackToPlaylistSong(track: LibraryTrack): PlaylistSong {
+  return {
+    id: track.id,
+    source: track.source,
+    title: track.title,
+    artists: track.artists,
+    artwork: { small: track.artworkUrl },
+    streamUrl: track.streamUrl,
+  };
 }

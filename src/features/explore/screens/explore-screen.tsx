@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
-import { useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,8 +29,16 @@ function toPlayerTrack(track: HomeTrack) {
 
 export function ExploreScreen() {
   const router = useRouter();
+  const { q } = useLocalSearchParams<{ q?: string }>();
   const scrollRef = useRef<ScrollView>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Lets another screen deep-link straight into a search — e.g. Library's
+  // Followed Artists row, which has no dedicated artist page yet and uses
+  // this as the closest existing way to surface an artist's songs.
+  useEffect(() => {
+    if (q) setSearchQuery(q);
+  }, [q]);
 
   const genreEntries = useGenrePreviews();
   const searchResult = useSearchTracks(searchQuery);

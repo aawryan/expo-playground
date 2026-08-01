@@ -100,7 +100,7 @@ export function HomeScreen() {
             isLoading={activeTrendingQuery?.isLoading ?? true}
             isError={activeTrendingQuery?.isError ?? false}
             data={activeTrendingQuery?.data}
-            errorMessage="Trending tracks load nahi ho paaye."
+            errorMessage="Trending tracks couldn't be loaded."
             onRetry={() => activeTrendingQuery?.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(tracks) => (
@@ -124,7 +124,7 @@ export function HomeScreen() {
             isLoading={newReleasesQuery.isLoading}
             isError={newReleasesQuery.isError}
             data={newReleasesQuery.data}
-            errorMessage="New releases load nahi ho paaye."
+            errorMessage="New releases couldn't be loaded."
             onRetry={() => newReleasesQuery.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(tracks) => (
@@ -144,7 +144,7 @@ export function HomeScreen() {
             isLoading={chartsQuery.isLoading}
             isError={chartsQuery.isError}
             data={chartsQuery.data}
-            errorMessage="Charts load nahi ho paaye."
+            errorMessage="Charts couldn't be loaded."
             onRetry={() => chartsQuery.refetch()}
             renderSkeleton={() => <ChartsGridSkeleton />}
             renderContent={(charts) => (
@@ -160,7 +160,7 @@ export function HomeScreen() {
               isLoading={query.isLoading}
               isError={query.isError}
               data={query.data}
-              errorMessage={`${genre.label} load nahi ho paaya.`}
+              errorMessage={`${genre.label} couldn't be loaded.`}
               onRetry={() => query.refetch()}
               renderSkeleton={() => <TrackRowSkeleton />}
               renderContent={(tracks) => (

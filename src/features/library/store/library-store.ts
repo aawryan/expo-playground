@@ -34,6 +34,14 @@ interface LibraryState {
   isArtistFollowed: (artistId: string) => boolean;
 }
 
+/** Liked songs as an array, most-recently-liked first. Relies on JS
+ * object key insertion order (guaranteed here since keys are always
+ * `source:id` strings, never bare numeric indices) rather than storing
+ * a separate order array. */
+export function getLikedSongsOrdered(state: LibraryState): LibraryTrack[] {
+  return Object.values(state.likedSongs).reverse();
+}
+
 export const useLibraryStore = create<LibraryState>()(
   persist(
     (set, get) => ({
@@ -93,7 +101,7 @@ export const useLibraryStore = create<LibraryState>()(
       },
     }),
     {
-      name: "whispr-library",
+      name: "library",
       storage: createJSONStorage(() => AsyncStorage),
       // Bump this if the persisted shape ever changes incompatibly —
       // gives a hook to migrate or reset old installs' saved data.
