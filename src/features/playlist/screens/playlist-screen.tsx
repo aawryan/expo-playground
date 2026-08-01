@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import type {
   ContentSource,
+  HomeArtwork,
   PlaylistSong,
 } from "@/features/home/types/home-content";
 import { usePlayerStore } from "@/lib/audio/player-store";
@@ -34,6 +35,12 @@ interface PlaylistScreenProps {
    * fallback search query than guessing from the seokey — see
    * `usePlaylistDetail`. */
   knownTitle?: string;
+  /** Same idea as `knownTitle` but for the card's cover art — Gaana's
+   * `/playlists/info` returns only a flat track list with no
+   * playlist-level artwork of its own, so this (the chart's actual
+   * artwork, confirmed correct) is what the hero image uses instead of
+   * falling back to a single track's own cover. */
+  knownArtworkUrl?: string;
 }
 
 function toPlayerTrack(song: PlaylistSong) {
@@ -51,12 +58,21 @@ export function PlaylistScreen({
   source,
   id,
   knownTitle,
+  knownArtworkUrl,
 }: PlaylistScreenProps) {
   const router = useRouter();
+  const knownArtwork: HomeArtwork | undefined = knownArtworkUrl
+    ? {
+        small: knownArtworkUrl,
+        medium: knownArtworkUrl,
+        large: knownArtworkUrl,
+      }
+    : undefined;
   const { data, isLoading, isError } = usePlaylistDetail(
     source,
     id,
     knownTitle,
+    knownArtwork,
   );
 
   const queue = usePlayerStore((state) => state.queue);

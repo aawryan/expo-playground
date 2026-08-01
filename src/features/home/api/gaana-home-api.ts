@@ -159,109 +159,63 @@ export async function fetchCharts(
 }
 
 // Playlist/chart detail — GaanaPy exposes `/playlists/info`, keyed by
-// `seokey`, returning a `tracks` list of the same track object used
-// everywhere else in the API.
+// `seokey`.
 //
-// BUG FIX: this used to also fire `/albums/info` in parallel and fall
-// back to whichever came back with tracks — on the theory that an
-// occasional chart card's seokey might resolve as an album instead of a
-// playlist. That theory doesn't hold: GaanaPy's own `/charts` route is
-// documented as "charts are just playlists" (app.py:
-// `summary="Retrieve the current top charts (charts are just
-// playlists)"`) — every chart seokey IS a playlist seokey, never an
-// album's. Calling `/albums/info` with a playlist's seokey doesn't
-// reliably 404; it can come back with *some* unrelated album's data
-// instead (Gaana's album lookup doesn't require an exact seokey match),
-// which is exactly why a Top Charts card's title matched gaana.com but
-// its songs didn't — the album fallback was winning whenever the real
-// playlist call was merely slow or the ternary's ordering favored it.
-// Only `/playlists/info` is called now; if that genuinely fails, we
-// fall through to the JioSaavn name-search fallback below instead of a
-// second guess at Gaana's own API.
-interface GaanaDetailResponse {
-  title: string;
-  subtitle?: string;
-  images?: { urls?: GaanaArtworkUrls };
-  tracks?: GaanaTrackResponse[];
-}
-
-/** Loose equality for titles across two providers/APIs — lowercases,
- * strips everything but letters/digits, so "Hindi Top 50", "Hindi Top
- * 50!", and "hindi-top-50" all normalize the same way. */
-function normalizeTitleForCompare(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function titlesRoughlyMatch(a: string, b: string): boolean {
-  const normA = normalizeTitleForCompare(a);
-  const normB = normalizeTitleForCompare(b);
-  if (!normA || !normB) return false;
-  return normA.includes(normB) || normB.includes(normA);
-}
-
+// BUG FIX (the real one): this was parsing the response as
+// `{ title, subtitle, images, tracks: [...] }` — a wrapper object that
+// was never confirmed against a live response (the docs don't publish
+// an example for this endpoint) and turned out to be wrong. The actual
+// response is a flat array of track objects, the exact same shape
+// `/trending` and `/charts`'s song lists use (confirmed against a real
+// `/playlists/info?seokey=gaana-dj-hindi-top-50-1` response). Since
+// `response.data` was really an array, `response.data.tracks` was
+// `undefined` on *every* call — the primary lookup silently "failed"
+// every single time, for every chart, and the app was quietly falling
+// through to the JioSaavn-by-name fallback below 100% of the time. Every
+// previous fix here (parallel album lookup, title-matching, fallback
+// query cleanup) was polishing that fallback without knowing the real
+// Gaana data was never actually being read. Parsing it as the track
+// array it actually is fixes the root cause directly.
+//
+// There's no playlist-level title/artwork in this response (it's just
+// tracks) — `knownTitle`/`knownArtwork` (the chart's own title and cover
+// art, already confirmed correct against gaana.com, passed in from the
+// home feed before this screen even opens) are used for those instead
+// of guessing from the track list.
 export async function fetchGaanaPlaylistDetail(
   seokey: string,
   knownTitle?: string,
+  knownArtwork?: HomeArtwork,
 ): Promise<PlaylistDetail> {
-  let data: GaanaDetailResponse | undefined;
+  let tracks: GaanaTrackResponse[] = [];
   try {
-    const response = await gaanaClient.get<GaanaDetailResponse>(
+    const response = await gaanaClient.get<GaanaTrackResponse[]>(
       "/playlists/info",
       { params: { seokey } },
     );
-    const candidate = response.data;
-    // BUG FIX: a non-empty `tracks` array was being treated as proof
-    // this was the right playlist. It isn't — GaanaPy's `/playlists/info`
-    // can come back with a completely different (but perfectly
-    // well-formed, non-empty) playlist's data for a given seokey. This
-    // is a real upstream data-integrity issue, not something fixable by
-    // changing our request. The one thing we CAN check from our side:
-    // we already know the chart's real title from `/charts` before this
-    // screen even opens (`knownTitle`) — if what came back doesn't
-    // reasonably match it, it's the wrong playlist, full stop, no matter
-    // how many tracks it has. Skip `knownTitle`-checking only when we
-    // genuinely don't have one to compare against.
-    if (
-      candidate?.tracks?.length &&
-      (!knownTitle || titlesRoughlyMatch(candidate.title, knownTitle))
-    ) {
-      data = candidate;
-    }
+    tracks = Array.isArray(response.data) ? response.data : [];
   } catch {
     // fall through to the JioSaavn fallback below
   }
 
-  if (data) {
+  if (tracks.length > 0) {
     return {
       id: seokey,
       source: "gaana",
-      title: data.title,
-      subtitle: data.subtitle,
-      artwork: normalizeArtwork(data.images?.urls),
-      songs: (data.tracks ?? []).map(normalizePlaylistSong),
+      title: knownTitle ?? tracks[0].title,
+      subtitle: tracks[0].language,
+      artwork: knownArtwork ?? normalizeArtwork(tracks[0].images?.urls),
+      songs: tracks.map(normalizePlaylistSong),
     };
   }
 
-  // The Gaana playlist lookup failed or came back empty — rather than
-  // dead-ending on the error state, try the same content by name on
-  // JioSaavn instead.
-  //
-  // BUG FIX: this used to search by a de-slugified seokey (e.g.
-  // "gaana-dj-hindi-top-50-1" → "gaana dj hindi top 50 1"). That query
-  // is full of noise — "gaana"/"dj" are Gaana's own branding words, not
-  // part of the playlist's real name, and the trailing "-1" is an
-  // internal edition/index suffix — so it was matching whatever
-  // unrelated playlist scored best against that noise (that's how a
-  // "Hindi Top 50" card ended up opening something like "Made by DJ
-  // AD"). `knownTitle` is the same clean title already shown on the
-  // card *before* this screen even opens (e.g. "Hindi Top 50" — the
-  // real title, confirmed against gaana.com) — searching by that
-  // instead is a real name lookup, not a guess from a slug. Only fall
-  // back to de-slugifying the seokey if a title genuinely isn't
-  // available (shouldn't normally happen from the home feed).
+  // The Gaana playlist lookup genuinely failed or came back empty —
+  // rather than dead-ending on the error state, try the same content by
+  // name on JioSaavn instead. `knownTitle` (the real chart title, e.g.
+  // "Hindi Top 50") gives a real name lookup instead of a guess.
   const fallbackQuery = knownTitle ?? seokey.replace(/-/g, " ");
   const fallback = await fetchJiosaavnPlaylistDetailByName(fallbackQuery);
   if (fallback) return fallback;
 
-  throw new Error("Gaana playlist detail returned no data.");
+  throw new Error("Gaana playlist detail returned no tracks.");
 }

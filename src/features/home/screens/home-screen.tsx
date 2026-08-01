@@ -76,7 +76,16 @@ export function HomeScreen() {
     // compiles regardless of that timing.
     router.push({
       pathname: "/playlist/[source]/[id]",
-      params: { source: chart.source, id: chart.id, title: chart.title },
+      params: {
+        source: chart.source,
+        id: chart.id,
+        title: chart.title,
+        artworkUrl:
+          chart.artwork.large ??
+          chart.artwork.medium ??
+          chart.artwork.small ??
+          "",
+      },
     } as unknown as Href);
   }
 
