@@ -76,7 +76,7 @@ export function HomeScreen() {
     // compiles regardless of that timing.
     router.push({
       pathname: "/playlist/[source]/[id]",
-      params: { source: chart.source, id: chart.id },
+      params: { source: chart.source, id: chart.id, title: chart.title },
     } as unknown as Href);
   }
 
@@ -100,7 +100,7 @@ export function HomeScreen() {
             isLoading={activeTrendingQuery?.isLoading ?? true}
             isError={activeTrendingQuery?.isError ?? false}
             data={activeTrendingQuery?.data}
-            errorMessage="Trending tracks couldn't be loaded."
+            errorMessage="Trending tracks load nahi ho paaye."
             onRetry={() => activeTrendingQuery?.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(tracks) => (
@@ -124,7 +124,7 @@ export function HomeScreen() {
             isLoading={newReleasesQuery.isLoading}
             isError={newReleasesQuery.isError}
             data={newReleasesQuery.data}
-            errorMessage="New releases couldn't be loaded."
+            errorMessage="New releases load nahi ho paaye."
             onRetry={() => newReleasesQuery.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(tracks) => (
@@ -144,7 +144,7 @@ export function HomeScreen() {
             isLoading={chartsQuery.isLoading}
             isError={chartsQuery.isError}
             data={chartsQuery.data}
-            errorMessage="Charts couldn't be loaded."
+            errorMessage="Charts load nahi ho paaye."
             onRetry={() => chartsQuery.refetch()}
             renderSkeleton={() => <ChartsGridSkeleton />}
             renderContent={(charts) => (
@@ -160,7 +160,7 @@ export function HomeScreen() {
               isLoading={query.isLoading}
               isError={query.isError}
               data={query.data}
-              errorMessage={`${genre.label} couldn't be loaded.`}
+              errorMessage={`${genre.label} load nahi ho paaya.`}
               onRetry={() => query.refetch()}
               renderSkeleton={() => <TrackRowSkeleton />}
               renderContent={(tracks) => (

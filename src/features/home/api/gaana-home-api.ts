@@ -187,6 +187,7 @@ interface GaanaDetailResponse {
 
 export async function fetchGaanaPlaylistDetail(
   seokey: string,
+  knownTitle?: string,
 ): Promise<PlaylistDetail> {
   let data: GaanaDetailResponse | undefined;
   try {
@@ -214,13 +215,23 @@ export async function fetchGaanaPlaylistDetail(
 
   // The Gaana playlist lookup failed or came back empty — rather than
   // dead-ending on the error state, try the same content by name on
-  // JioSaavn instead. seokeys are slugified titles (e.g.
-  // "gaana-dj-gaana-international-top-50" → "gaana dj gaana
-  // international top 50"), which is close enough to the real title for
-  // JioSaavn's playlist search to find the equivalent playlist.
-  const fallback = await fetchJiosaavnPlaylistDetailByName(
-    seokey.replace(/-/g, " "),
-  );
+  // JioSaavn instead.
+  //
+  // BUG FIX: this used to search by a de-slugified seokey (e.g.
+  // "gaana-dj-hindi-top-50-1" → "gaana dj hindi top 50 1"). That query
+  // is full of noise — "gaana"/"dj" are Gaana's own branding words, not
+  // part of the playlist's real name, and the trailing "-1" is an
+  // internal edition/index suffix — so it was matching whatever
+  // unrelated playlist scored best against that noise (that's how a
+  // "Hindi Top 50" card ended up opening something like "Made by DJ
+  // AD"). `knownTitle` is the same clean title already shown on the
+  // card *before* this screen even opens (e.g. "Hindi Top 50" — the
+  // real title, confirmed against gaana.com) — searching by that
+  // instead is a real name lookup, not a guess from a slug. Only fall
+  // back to de-slugifying the seokey if a title genuinely isn't
+  // available (shouldn't normally happen from the home feed).
+  const fallbackQuery = knownTitle ?? seokey.replace(/-/g, " ");
+  const fallback = await fetchJiosaavnPlaylistDetailByName(fallbackQuery);
   if (fallback) return fallback;
 
   throw new Error("Gaana playlist detail returned no data.");

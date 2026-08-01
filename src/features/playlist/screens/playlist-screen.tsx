@@ -29,6 +29,11 @@ const HERO_ARTWORK_SIZE = moderateScale(180);
 interface PlaylistScreenProps {
   source: ContentSource;
   id: string;
+  /** The chart/card's real title, already known from the home feed
+   * before this screen even loads. Used as a much more reliable
+   * fallback search query than guessing from the seokey — see
+   * `usePlaylistDetail`. */
+  knownTitle?: string;
 }
 
 function toPlayerTrack(song: PlaylistSong) {
@@ -42,9 +47,17 @@ function toPlayerTrack(song: PlaylistSong) {
   };
 }
 
-export function PlaylistScreen({ source, id }: PlaylistScreenProps) {
+export function PlaylistScreen({
+  source,
+  id,
+  knownTitle,
+}: PlaylistScreenProps) {
   const router = useRouter();
-  const { data, isLoading, isError } = usePlaylistDetail(source, id);
+  const { data, isLoading, isError } = usePlaylistDetail(
+    source,
+    id,
+    knownTitle,
+  );
 
   const queue = usePlayerStore((state) => state.queue);
   const currentIndex = usePlayerStore((state) => state.currentIndex);
