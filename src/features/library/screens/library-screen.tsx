@@ -4,14 +4,15 @@ import { useCallback, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import type { ContentSource } from "@/features/home/types/home-content";
 import { SectionHeader, TrackRow } from "@/features/home/components";
+import type { ContentSource } from "@/features/home/types/home-content";
 import { SongRow } from "@/features/playlist/components";
 import { usePlayerStore } from "@/lib/audio/player-store";
 import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
+import { useShallow } from "zustand/react/shallow";
 import { ArtistChip } from "../components";
 import { getLikedSongsOrdered, useLibraryStore } from "../store/library-store";
 import {
@@ -49,9 +50,9 @@ export function LibraryScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const history = useLibraryStore((state) => state.history);
-  const likedSongsOrdered = useLibraryStore(getLikedSongsOrdered);
-  const followedArtists = useLibraryStore((state) =>
-    Object.values(state.followedArtists),
+  const likedSongsOrdered = useLibraryStore(useShallow(getLikedSongsOrdered));
+  const followedArtists = useLibraryStore(
+    useShallow((state) => Object.values(state.followedArtists)),
   );
   const playQueue = usePlayerStore((state) => state.playQueue);
   const queue = usePlayerStore((state) => state.queue);
@@ -133,9 +134,7 @@ export function LibraryScreen() {
             />
             {likedSongsOrdered.length > 0 ? (
               <Pressable onPress={openLikedSongs} hitSlop={8}>
-                <Text style={[typography.label, styles.viewAll]}>
-                  View All
-                </Text>
+                <Text style={[typography.label, styles.viewAll]}>View All</Text>
               </Pressable>
             ) : null}
           </View>
@@ -154,8 +153,8 @@ export function LibraryScreen() {
             </View>
           ) : (
             <Text style={[typography.caption, styles.emptyNote]}>
-              Songs you like will show up here. Tap the heart on any song to
-              add it.
+              Songs you like will show up here. Tap the heart on any song to add
+              it.
             </Text>
           )}
         </View>

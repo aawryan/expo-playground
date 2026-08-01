@@ -11,12 +11,13 @@ import { moderateScale } from "@/lib/responsive";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { typography } from "@/lib/theme/typography";
+import { useShallow } from "zustand/react/shallow";
 import { getLikedSongsOrdered, useLibraryStore } from "../store/library-store";
 import { libraryTrackToPlaylistSong } from "../types/library-content";
 
 export function LikedSongsScreen() {
   const router = useRouter();
-  const likedSongs = useLibraryStore(getLikedSongsOrdered);
+  const likedSongs = useLibraryStore(useShallow(getLikedSongsOrdered));
   const songs = likedSongs.map(libraryTrackToPlaylistSong);
 
   const queue = usePlayerStore((state) => state.queue);
@@ -76,8 +77,8 @@ export function LikedSongsScreen() {
               </Pressable>
             ) : (
               <Text style={[typography.caption, styles.emptyNote]}>
-                Songs you like will show up here. Tap the heart on any song
-                to add it.
+                Songs you like will show up here. Tap the heart on any song to
+                add it.
               </Text>
             )}
           </View>
