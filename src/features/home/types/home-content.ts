@@ -28,6 +28,16 @@ export interface HomeChart {
   artwork: HomeArtwork;
 }
 
+/** A performer/band — JioSaavn-only, same reasoning as `FollowedArtist`
+ * in the library feature: Gaana's API has no artist entity of its own
+ * (just a plain `artists: string` on a track), so there's no stable id
+ * to key this by on that side. */
+export interface HomeArtist {
+  id: string;
+  name: string;
+  imageUrl?: string;
+}
+
 /** A single playable song inside a playlist/album/chart detail screen. */
 export interface PlaylistSong {
   id: string;

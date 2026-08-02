@@ -9,6 +9,8 @@ import {
   fetchTrending,
 } from "../api/gaana-home-api";
 import {
+  fetchJiosaavnAlbums,
+  fetchJiosaavnArtists,
   fetchJiosaavnCharts,
   fetchJiosaavnNewReleases,
   fetchJiosaavnTrending,
@@ -107,6 +109,24 @@ export function useCharts() {
   return useQuery({
     queryKey: ["home", "charts"],
     queryFn: () => fetchMixed<HomeChart>([fetchCharts, fetchJiosaavnCharts]),
+  });
+}
+
+/** JioSaavn-only — Gaana has no dedicated album-search endpoint of its
+ * own, same reasoning as `useArtists` below. */
+export function useAlbums() {
+  return useQuery({
+    queryKey: ["home", "albums"],
+    queryFn: fetchJiosaavnAlbums,
+  });
+}
+
+/** JioSaavn-only — see `HomeArtist`'s doc comment for why Gaana has no
+ * equivalent artist entity to mix in here. */
+export function useArtists() {
+  return useQuery({
+    queryKey: ["home", "artists"],
+    queryFn: fetchJiosaavnArtists,
   });
 }
 

@@ -1,6 +1,7 @@
 import { jiosaavnClient } from "@/lib/api/clients";
 import { dedupeByKey, interleaveEqually } from "@/lib/utils/mix";
 import type {
+  HomeArtist,
   HomeArtwork,
   HomeChart,
   HomeLanguage,
@@ -223,6 +224,92 @@ export async function fetchJiosaavnCharts(): Promise<HomeChart[]> {
     b.status === "fulfilled" ? b.value : [],
   );
   return dedupeByKey(mixed, (chart) => chart.id);
+}
+
+/**
+ * Shape confirmed against the public docs for this same JioSaavn-wrapper
+ * family (docs.saavn.me/search/albums) — a real example response, not a
+ * guess. Reuses `JiosaavnAlbumOrPlaylistResponse`'s `image`/`songCount`
+ * fields since albums follow the same `{quality, url}` image convention
+ * as songs/playlists there. Not yet confirmed against a live response
+ * from *this* app's actual NepoTuneAPI deployment though (same caveat as
+ * every other endpoint here marked this way) — if an album card ever
+ * shows a wrong/blank artist line or artwork, that's the first thing to
+ * check against a real response.
+ */
+interface JiosaavnAlbumResponse extends JiosaavnAlbumOrPlaylistResponse {
+  year?: string;
+  primaryArtists?: { id?: string; name: string }[];
+}
+
+const ALBUM_QUERIES: [string, string] = ["Bollywood Album", "English Album"];
+
+export async function fetchJiosaavnAlbums(): Promise<HomeChart[]> {
+  const fetchOne = async (query: string): Promise<HomeChart[]> => {
+    const { data } = await jiosaavnClient.get<
+      JiosaavnSearchEnvelope<JiosaavnAlbumResponse>
+    >("/search/albums", { params: { query, limit: 15 } });
+    return (data?.data?.results ?? []).map((raw) => ({
+      id: raw.id,
+      source: "jiosaavn" as const,
+      title: raw.name,
+      subtitle:
+        raw.primaryArtists?.map((artist) => artist.name).join(", ") || raw.year,
+      artwork: bestArtwork(raw.image),
+    }));
+  };
+
+  const [a, b] = await Promise.allSettled(ALBUM_QUERIES.map(fetchOne));
+  const mixed = interleaveEqually(
+    a.status === "fulfilled" ? a.value : [],
+    b.status === "fulfilled" ? b.value : [],
+  );
+  return dedupeByKey(mixed, (album) => album.id);
+}
+
+/**
+ * Shape confirmed against docs.saavn.me/search/artists — a real example
+ * response. Important difference from every other entity in this file:
+ * an artist's `image` array uses a `link` field, not `url` — reusing
+ * `bestArtwork()` (which reads `.url`) here would silently produce all
+ * `undefined` artwork, so this gets its own small parser instead.
+ */
+interface JiosaavnArtistImage {
+  quality?: string;
+  link: string;
+}
+
+interface JiosaavnArtistResponse {
+  id: string;
+  name: string;
+  image?: JiosaavnArtistImage[];
+}
+
+function bestArtistImage(images?: JiosaavnArtistImage[]): string | undefined {
+  if (!images || images.length === 0) return undefined;
+  return images[images.length - 1]?.link;
+}
+
+const ARTIST_QUERIES: [string, string] = ["Bollywood Singers", "Pop Artists"];
+
+export async function fetchJiosaavnArtists(): Promise<HomeArtist[]> {
+  const fetchOne = async (query: string): Promise<HomeArtist[]> => {
+    const { data } = await jiosaavnClient.get<
+      JiosaavnSearchEnvelope<JiosaavnArtistResponse>
+    >("/search/artists", { params: { query, limit: 15 } });
+    return (data?.data?.results ?? []).map((raw) => ({
+      id: raw.id,
+      name: raw.name,
+      imageUrl: bestArtistImage(raw.image),
+    }));
+  };
+
+  const [a, b] = await Promise.allSettled(ARTIST_QUERIES.map(fetchOne));
+  const mixed = interleaveEqually(
+    a.status === "fulfilled" ? a.value : [],
+    b.status === "fulfilled" ? b.value : [],
+  );
+  return dedupeByKey(mixed, (artist) => artist.id);
 }
 
 /**

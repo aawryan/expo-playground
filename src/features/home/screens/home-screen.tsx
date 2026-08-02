@@ -9,6 +9,8 @@ import { useRegisterScrollToTop } from "@/lib/navigation/scroll-to-top";
 import { colors } from "@/lib/theme/colors";
 import { spacing } from "@/lib/theme/spacing";
 import {
+  ArtistsRow,
+  ArtistsRowSkeleton,
   ChartsRow,
   HomeHero,
   HomeSectionState,
@@ -18,12 +20,19 @@ import {
   TrackRowSkeleton,
 } from "../components";
 import {
+  useAlbums,
+  useArtists,
   useCharts,
   useGenreRows,
   useNewReleases,
   useTrendingByLanguage,
 } from "../hooks/use-home-feed";
-import type { HomeChart, HomeLanguage, HomeTrack } from "../types/home-content";
+import type {
+  HomeArtist,
+  HomeChart,
+  HomeLanguage,
+  HomeTrack,
+} from "../types/home-content";
 
 const TRENDING_LANGUAGES: readonly HomeLanguage[] = ["Hindi", "English"];
 
@@ -47,6 +56,8 @@ export function HomeScreen() {
   const trendingQueries = useTrendingByLanguage();
   const newReleasesQuery = useNewReleases();
   const chartsQuery = useCharts();
+  const albumsQuery = useAlbums();
+  const artistsQuery = useArtists();
   const genreRows = useGenreRows();
   const playQueue = usePlayerStore((state) => state.playQueue);
 
@@ -88,6 +99,16 @@ export function HomeScreen() {
     } as unknown as Href);
   }
 
+  function openArtist(artist: HomeArtist) {
+    // Same pattern Library's Followed Artists row already uses — no
+    // dedicated artist page yet, so the closest existing way to surface
+    // an artist's songs is a deep-link straight into Explore's search.
+    router.push({
+      pathname: "/(tabs)/explore",
+      params: { q: artist.name },
+    } as unknown as Href);
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
@@ -108,7 +129,7 @@ export function HomeScreen() {
             isLoading={activeTrendingQuery?.isLoading ?? true}
             isError={activeTrendingQuery?.isError ?? false}
             data={activeTrendingQuery?.data}
-            errorMessage="Trending tracks couldn't be loaded."
+            errorMessage="Trending tracks load nahi ho paaye."
             onRetry={() => activeTrendingQuery?.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(tracks) => (
@@ -131,7 +152,7 @@ export function HomeScreen() {
             isLoading={newReleasesQuery.isLoading}
             isError={newReleasesQuery.isError}
             data={newReleasesQuery.data}
-            errorMessage="New releases couldn't be loaded."
+            errorMessage="New releases load nahi ho paaye."
             onRetry={() => newReleasesQuery.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(tracks) => (
@@ -150,11 +171,46 @@ export function HomeScreen() {
             isLoading={chartsQuery.isLoading}
             isError={chartsQuery.isError}
             data={chartsQuery.data}
-            errorMessage="Charts couldn't be loaded."
+            errorMessage="Charts load nahi ho paaye."
             onRetry={() => chartsQuery.refetch()}
             renderSkeleton={() => <TrackRowSkeleton />}
             renderContent={(charts) => (
               <ChartsRow charts={charts} onChartPress={openChart} />
+            )}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader title="Popular Artists" />
+          <HomeSectionState
+            isLoading={artistsQuery.isLoading}
+            isError={artistsQuery.isError}
+            data={artistsQuery.data}
+            errorMessage="Artists load nahi ho paaye."
+            onRetry={() => artistsQuery.refetch()}
+            renderSkeleton={() => <ArtistsRowSkeleton />}
+            renderContent={(artists) => (
+              <ArtistsRow artists={artists} onArtistPress={openArtist} />
+            )}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader title="Popular Albums" />
+          <HomeSectionState
+            isLoading={albumsQuery.isLoading}
+            isError={albumsQuery.isError}
+            data={albumsQuery.data}
+            errorMessage="Albums load nahi ho paaye."
+            onRetry={() => albumsQuery.refetch()}
+            renderSkeleton={() => <TrackRowSkeleton />}
+            renderContent={(albums) => (
+              <ChartsRow
+                charts={albums}
+                onChartPress={openChart}
+                showRank={false}
+                fallbackLabel="Album"
+              />
             )}
           />
         </View>
@@ -166,7 +222,7 @@ export function HomeScreen() {
               isLoading={query.isLoading}
               isError={query.isError}
               data={query.data}
-              errorMessage={`${genre.label} couldn't be loaded.`}
+              errorMessage={`${genre.label} load nahi ho paaya.`}
               onRetry={() => query.refetch()}
               renderSkeleton={() => <TrackRowSkeleton />}
               renderContent={(tracks) => (

@@ -21,6 +21,21 @@ export function TrackRowSkeleton() {
   );
 }
 
+const ARTIST_AVATAR_SIZE = moderateScale(96, 0.3);
+
+export function ArtistsRowSkeleton() {
+  return (
+    <View style={styles.skeletonRow}>
+      {[0, 1, 2, 3].map((key) => (
+        <View key={key} style={styles.skeletonArtistTile}>
+          <View style={styles.skeletonArtistAvatar} />
+          <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 interface SectionErrorViewProps {
   message?: string;
   onRetry?: () => void;
@@ -88,6 +103,16 @@ const styles = StyleSheet.create({
   skeletonLineShort: {
     width: "60%",
     marginTop: spacing.xs,
+  },
+  skeletonArtistTile: {
+    width: ARTIST_AVATAR_SIZE,
+    alignItems: "center",
+  },
+  skeletonArtistAvatar: {
+    width: ARTIST_AVATAR_SIZE,
+    height: ARTIST_AVATAR_SIZE,
+    borderRadius: ARTIST_AVATAR_SIZE / 2,
+    backgroundColor: colors.surface,
   },
   errorContainer: {
     paddingHorizontal: spacing.lg,
