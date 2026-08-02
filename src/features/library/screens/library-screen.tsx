@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -66,7 +66,7 @@ function titleOf(item: LibraryListItem): string {
 
 export function LibraryScreen() {
   const router = useRouter();
-  const listRef = useRef<FlashList<LibraryListItem>>(null);
+  const listRef = useRef<FlashListRef<LibraryListItem>>(null);
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -333,7 +333,6 @@ export function LibraryScreen() {
         data={listData}
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => renderItem(item)}
-        estimatedItemSize={moderateScale(68)}
         contentContainerStyle={{
           paddingBottom: spacing.xxl * 4,
           paddingTop: spacing.sm,
